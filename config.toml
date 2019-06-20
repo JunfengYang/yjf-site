@@ -21,6 +21,7 @@ disqusShortname = "杨峻峰"
 # googleAnalytics = "UA-123-45"
 paginate = 7
 canonifyurls = true
+publishDir = "docs"
 
 [permalinks]
   post = "/:year/:month/:slug/"
