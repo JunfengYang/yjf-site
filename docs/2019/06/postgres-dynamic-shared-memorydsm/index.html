@@ -10,15 +10,15 @@
 <meta name="keywords" content="pg, dsm, dynamic, shared, memory">
 <meta name="description" content="Dynamic Shared Memory And Shared Memory Message Queue
 
-These days I just read the postgres&rsquo; dynamic shared memory and shared memory message queue.
-This is my study note of the postgres source code.
+These days I just read the Postgres&rsquo; dynamic shared memory and shared memory message queue.
+This is my study note of the Postgres source code.
 The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.">
 
 
 <meta property="og:description" content="Dynamic Shared Memory And Shared Memory Message Queue
 
-These days I just read the postgres&rsquo; dynamic shared memory and shared memory message queue.
-This is my study note of the postgres source code.
+These days I just read the Postgres&rsquo; dynamic shared memory and shared memory message queue.
+This is my study note of the Postgres source code.
 The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Postgres Dynamic Shared Memory(dsm)">
@@ -28,13 +28,13 @@ The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c
 <meta property="og:site_name" content="Yang Junfeng&#39;s Page">
 <meta property="og:description" content="Dynamic Shared Memory And Shared Memory Message Queue
 
-These days I just read the postgres&rsquo; dynamic shared memory and shared memory message queue.
-This is my study note of the postgres source code.
+These days I just read the Postgres&rsquo; dynamic shared memory and shared memory message queue.
+This is my study note of the Postgres source code.
 The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.">
 <meta name="twitter:description" content="Dynamic Shared Memory And Shared Memory Message Queue
 
-These days I just read the postgres&rsquo; dynamic shared memory and shared memory message queue.
-This is my study note of the postgres source code.
+These days I just read the Postgres&rsquo; dynamic shared memory and shared memory message queue.
+This is my study note of the Postgres source code.
 The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.">
 <meta property="og:locale" content="zh-cn">
 
@@ -265,8 +265,8 @@ The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c
             <div class="main-content-wrap">
               <h1 id="dynamic-shared-memory-and-shared-memory-message-queue">Dynamic Shared Memory And Shared Memory Message Queue</h1>
 
-<p>These days I just read the postgres&rsquo; dynamic shared memory and shared memory message queue.
-This is my study note of the postgres source code.
+<p>These days I just read the Postgres&rsquo; dynamic shared memory and shared memory message queue.
+This is my study note of the Postgres source code.
 The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.</p>
 
 <h2 id="structure">Structure</h2>
@@ -294,7 +294,7 @@ dsm_control_header *dsm_control |                    -----
                              |           |                              ^       ^   |
                              |           |------------------------------|       |   |
                              |--------------------------------------------------|   |
-toc means table of content, it seperate a space to table of chunks.                 |
+toc means table of content, it separate space to table of chunks.                 |
                                                                                     |
 Shared memory message queue is residence dynamic shared memory.                     |
 For example we put a queue in a toc chunk.                                          |
@@ -340,10 +340,10 @@ struct dsm_segment
 
 <h3 id="dsm-startup">dsm startup.</h3>
 
-<p>Since postmaster don&rsquo;t use dsm, the startup of dsm will execute when a backend get started.
-For the whole database cluster(Not greenplum cluster).
-The shared memory control segment/space get created, which is also a dsm.
-The unique random <code>handle</code> value that identify the lower layer shared memory file/segment
+<p>Since postmaster doesn&rsquo;t use dsm, the startup of dsm will execute when a backend gets started.
+For the whole database cluster(Not Greenplum cluster).
+The shared memory control segment/space gets created, which is also a dsm.
+The unique random <code>handle</code> value that identifies the lower layer shared memory file/segment
 will be generated. Then, the file get created. After init <code>dsm_control_header *dsm_control</code>,
 the startup is done.</p>
 
@@ -352,14 +352,14 @@ the startup is done.</p>
 <p>First it creates a local <code>dsm_segment</code> as segment descriptor.
 Add it to local <code>dsm_segment_list</code> to track current created ot attached dsm segments
 for current process.
-Generate random <code>handle</code> that identify the segment. Then create dsm base on it.
+Generate random <code>handle</code> that identifies the segment. Then create dsm base on it.
 If dsm gets created, record it into shared memory control segment&rsquo;s free <code>dsm_control_item - dsm_control-&gt;item[free_slot]</code>.
 Set the item&rsquo;s <code>refcnt</code> to 2. Increase the <code>dsm_control-&gt;nitems</code>.
 Record the current <code>free_slot</code> into local segment descriptor <code>seg-&gt;control_slot</code>.</p>
 
 <h3 id="attach-to-a-dsm">Attach to a dsm</h3>
 
-<p>Use the <code>handle</code> that identify the segment, first iterate the local <code>dsm_segment_list</code>
+<p>Use the <code>handle</code> that identifies the segment, first iterate the local <code>dsm_segment_list</code>
 to check whether current proc already created or attached to that dsm segment.
 Error out if exists in the list.
 If not exists in the list,  creates a local <code>dsm_segment</code> as segment descriptor.
@@ -380,15 +380,15 @@ Not all OS support resize. And resize will lose data for last two case.</p>
 
 <h3 id="detach-from-dsm">Detach from dsm</h3>
 
-<p>If there are detach callbacks registeded on local segment descriptor <code>seg-&gt;on_detach</code>,
+<p>If there are detach callbacks registered on local segment descriptor <code>seg-&gt;on_detach</code>,
 call the callback before detach.
 Then execute detach on dsm. Update shared memory control segment item attributes like <code>refcnt</code>.
-If current <code>refcnt</code> is 1, destory the dsm. Then clean the shared memory control segment item.</p>
+If current <code>refcnt</code> is 1, destroy the dsm. Then clean the shared memory control segment item.</p>
 
 <h3 id="register-dsm-detach-callback">Register dsm detach callback.</h3>
 
-<p>Once successfully created or attached to a dsm, we can register detach callback in local
-segment descriptor. <code>seg-&gt;on_detach</code>. It&rsquo;s a list chain every detach callback.</p>
+<p>Once successfully created or attached to a dsm, we can register to detach callback in local
+segment descriptor. <code>seg-&gt;on_detach</code>. It&rsquo;s a list, that chains every detach callback.</p>
 
 <h2 id="shared-memory-segment-table-of-contents">Shared Memory Segment Table of Contents</h2>
 
@@ -430,11 +430,11 @@ If yes, allocate space from the end of <code>shm_toc</code> structure.</p>
 
 <h3 id="insert-table-of-content-entry-into-shm-toc-to-record-allocate-space-info">Insert table of content entry into shm_toc to record allocate space info.</h3>
 
-<p>Fill up the <code>shm_toc-&gt;toc_entry[free_slot]</code> with the allocated space affress offset and key.</p>
+<p>Fill up the <code>shm_toc-&gt;toc_entry[free_slot]</code> with the allocated space address offset and key.</p>
 
 <h3 id="lookup-for-a-chunk-from-table-of-content">Lookup for a chunk from table of content</h3>
 
-<p>Iterate all <code>shm_toc-&gt;toc_entry</code> and get entry that match request key. Return the chunk address.</p>
+<p>Iterate all <code>shm_toc-&gt;toc_entry</code> and get an entry that matches request key. Return the chunk address.</p>
 
 <h2 id="shared-memory-message-queue">Shared Memory Message Queue</h2>
 
@@ -471,42 +471,42 @@ struct shm_mq_handle
 };
 </code></pre>
 
-<h3 id="create-share-memory-message-queue">Create share memory message queue</h3>
+<h3 id="create-shared-memory-message-queue">Create shared memory message queue</h3>
 
 <p>Init <code>shm_mq</code> structure base on the given space. Set the ring size.</p>
 
-<h3 id="set-share-memory-message-queue-receiver">Set share memory message queue receiver</h3>
+<h3 id="set-shared-memory-message-queue-receiver">Set shared memory message queue receiver</h3>
 
 <p>Set the receiver proc for the queue. If the sender exists, notify the sender.</p>
 
-<h3 id="set-share-memory-message-queue-sender">Set share memory message queue sender</h3>
+<h3 id="set-shared-memory-message-queue-sender">Set shared memory message queue sender</h3>
 
 <p>Set the reader proc for the queue. if the receiver exists, notify the receiver.</p>
 
-<h3 id="attach-to-a-share-memory-message-queue">Attach to a share memory message queue</h3>
+<h3 id="attach-to-a-shared-memory-message-queue">Attach to a shared memory message queue</h3>
 
 <p>Attach is actually init a local <code>shm_mq_handle</code> structure record some local
 attribute for the shared queue.
-Also register a detach callback which update <code>shm_mq-&gt;mq_detached</code> to true.
-To let other process attach to the queue know that this proc detached.</p>
+Also, register a detach callback which updates <code>shm_mq-&gt;mq_detached</code> to true.
+To let another process attach to the queue know that this proc detached.</p>
 
-<p>Set <code>shm_mq_handle-&gt;mqh_handle</code> if the other process attach to this queue is a bgworker.
+<p>Set <code>shm_mq_handle-&gt;mqh_handle</code> if the other process attaches to this queue is a bgworker.
 Because we don&rsquo;t want to wait forever if the bgworker fails to start.
 So we use the <code>BackgroundWorkerHandle mqh_handle</code> to track bgworker status.</p>
 
 <h3 id="send-data-to-queue">Send data to queue.</h3>
 
-<p>For data sending, it&rsquo;ll seperate into two phase.</p>
+<p>For data sent, it&rsquo;ll separate into two phases.</p>
 
 <ol>
 <li>write length into the buffer first.</li>
-<li>write the data which length is equal the 1st step length.</li>
+<li>write the data which length is equal to the 1st step length.</li>
 </ol>
 
-<p>For each write, calculate the freespace of the queue&rsquo;s ring.</p>
+<p>For each write, calculate the free space of the queue&rsquo;s ring.</p>
 
 <ul>
-<li>If there&rsquo;s no availabe space to write.
+<li>If there&rsquo;s no available space to write.
 
 <ul>
 <li>If the receiver not exists, wait for a receiver. Or return <code>SHM_MQ_WOULD_BLOCK</code> for no block write.</li>
@@ -519,13 +519,13 @@ So we use the <code>BackgroundWorkerHandle mqh_handle</code> to track bgworker s
 <li>If success, wait, so receiver can read out data. Once receiver read some data, it&rsquo;ll wake up current sender. to continue write.</li>
 </ul></li>
 </ul></li>
-<li>If there still enough space for write, write to the ring, wrap if needed cause the queue is a ring.
+<li>If there still enough space to write, write to the ring, wrap if needed cause the queue is a ring.
 <code>shm_mq-&gt;mq_bytes_written</code> is used to track current write bytes.</li>
 </ul>
 
 <h3 id="read-data-from-queue">Read data from queue</h3>
 
-<p>For data reading, it read one msg at a time. It also seperate into two phase.</p>
+<p>For data reading, it read one msg at a time. It also separates into two phases.</p>
 
 <ol>
 <li>read length of the msg.</li>
@@ -533,13 +533,13 @@ So we use the <code>BackgroundWorkerHandle mqh_handle</code> to track bgworker s
 </ol>
 
 <ul>
-<li>At the begining, it check whether sender exists. If not exists, it can not read.
-So, wait the sender process. For no wait, it&rsquo;ll return SHM_MQ_WOULD_BLOCK or
+<li>In the begining, it check whether sender exists. If not exists, it can not read.
+So, wait for the sender process. For no wait, it&rsquo;ll return SHM_MQ_WOULD_BLOCK or
 SHM_MQ_DETACHED if sender detached.</li>
-<li>If data get wraped in the ring, local process use local <code>shm_mq_handle-&gt;mqh_buffer</code>
+<li>If data get wraped in the ring, local process uses local <code>shm_mq_handle-&gt;mqh_buffer</code>
 to assemble final msg.</li>
 <li><code>shm_mq-&gt;mq_bytes_read</code> is used to track current read bytes.</li>
-<li>If there&rsquo;s no more data to read, wait for sender&rsquo;s notify so that the queue have data to read.</li>
+<li>If there are no more data to read, wait for sender&rsquo;s notify so that the queue has data to read.</li>
 </ul>
 
 <h2 id="more-resources">More resources.</h2>
@@ -761,8 +761,8 @@ to assemble final msg.</li>
               </span>
               <div class="media-content hide-xs font-merryweather"><h1 id="dynamic-shared-memory-and-shared-memory-message-queue">Dynamic Shared Memory And Shared Memory Message Queue</h1>
 
-<p>These days I just read the postgres&rsquo; dynamic shared memory and shared memory message queue.
-This is my study note of the postgres source code.
+<p>These days I just read the Postgres&rsquo; dynamic shared memory and shared memory message queue.
+This is my study note of the Postgres source code.
 The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.</p></div>
             </div>
             <div style="clear:both;"></div>
