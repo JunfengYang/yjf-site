@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="generator" content="Hugo 0.55.6 with theme Tranquilpeak 0.4.3-SNAPSHOT">
+<meta name="author" content="Yang Junfeng">
+<meta name="keywords" content="pg, dsm, dynamic, shared, memory">
+<meta name="description" content="Dynamic Shared Memory And Shared Memory Queue
+
+These days I just read the postgres&rsquo; dynamic shared memory and shared message queue.
+This is my study note of the postgres source code.
+The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.">
+
+
+<meta property="og:description" content="Dynamic Shared Memory And Shared Memory Queue
+
+These days I just read the postgres&rsquo; dynamic shared memory and shared message queue.
+This is my study note of the postgres source code.
+The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Postgres Dynamic Shared Memory(dsm)">
+<meta name="twitter:title" content="Postgres Dynamic Shared Memory(dsm)">
+<meta property="og:url" content="https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/">
+<meta property="twitter:url" content="https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/">
+<meta property="og:site_name" content="Yang Junfeng&#39;s Page">
+<meta property="og:description" content="Dynamic Shared Memory And Shared Memory Queue
+
+These days I just read the postgres&rsquo; dynamic shared memory and shared message queue.
+This is my study note of the postgres source code.
+The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.">
+<meta name="twitter:description" content="Dynamic Shared Memory And Shared Memory Queue
+
+These days I just read the postgres&rsquo; dynamic shared memory and shared message queue.
+This is my study note of the postgres source code.
+The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.">
+<meta property="og:locale" content="zh-cn">
+
+  
+    <meta property="article:published_time" content="2019-06-20T16:35:16">
+  
+  
+    <meta property="article:modified_time" content="2019-06-20T16:35:16">
+  
+  
+  
+    
+      <meta property="article:section" content="postgres">
+    
+      <meta property="article:section" content="greenplum">
+    
+  
+  
+    
+      <meta property="article:tag" content="pg">
+    
+      <meta property="article:tag" content="gp">
+    
+      <meta property="article:tag" content="postgres">
+    
+      <meta property="article:tag" content="greenplum">
+    
+  
+
+
+<meta name="twitter:card" content="summary">
+
+
+
+
+
+
+
+
+
+
+
+  <meta property="og:image" content="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=640">
+  <meta property="twitter:image" content="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=640">
+
+
+    <title>Postgres Dynamic Shared Memory(dsm)</title>
+
+    <link rel="icon" href="https://yjfnlc.cn/favicon.png">
+    
+
+    
+
+    <link rel="canonical" href="https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/">
+
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/jquery.fancybox.min.css" integrity="sha256-vuXZ9LGmmwtjqFX1F+EKin1ThZMub58gKULUyf0qECk=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/helpers/jquery.fancybox-thumbs.min.css" integrity="sha256-SEa4XYAHihTcEP1f5gARTB2K26Uk8PsndQYHQC1f4jU=" crossorigin="anonymous" />
+    
+    
+    <link rel="stylesheet" href="https://yjfnlc.cn/css/style-nnm2spxvve8onlujjlegkkytaehyadd4ksxc1hyzzq9a2wvtrgbljqyulomn.min.css" />
+    
+    
+
+    
+      
+    
+    
+  </head>
+
+  <body>
+    <div id="blog">
+      <header id="header" data-behavior="4">
+  <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+  <div class="header-title">
+    <a class="header-title-link" href="https://yjfnlc.cn/">Yang Junfeng&#39;s Page</a>
+  </div>
+  
+    
+      <a class="header-right-picture "
+         href="https://yjfnlc.cn/#about">
+    
+    
+    
+      
+        <img class="header-picture" src="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=90" alt="作者的图片" />
+      
+    
+    </a>
+  
+</header>
+
+      <nav id="sidebar" data-behavior="4">
+  <div class="sidebar-container">
+    
+      <div class="sidebar-profile">
+        <a href="https://yjfnlc.cn/#about">
+          <img class="sidebar-profile-picture" src="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=110" alt="作者的图片" />
+        </a>
+        <h4 class="sidebar-profile-name">Yang Junfeng</h4>
+        
+          <h5 class="sidebar-profile-bio">Really <strong>COOL</strong></h5>
+        
+      </div>
+    
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+      
+      <span class="sidebar-button-desc">首页</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/categories">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+      
+      <span class="sidebar-button-desc">分类</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/tags">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+      
+      <span class="sidebar-button-desc">标签</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/archives">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+      
+      <span class="sidebar-button-desc">归档</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/#about">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+      
+      <span class="sidebar-button-desc">关于</span>
+    </a>
+  </li>
+
+
+    </ul>
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://github.com/JunfengYang" target="_blank" rel="noopener">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+      
+      <span class="sidebar-button-desc">GitHub</span>
+    </a>
+  </li>
+
+
+    </ul>
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/index.xml">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-rss"></i>
+      
+      <span class="sidebar-button-desc">RSS</span>
+    </a>
+  </li>
+
+
+    </ul>
+  </div>
+</nav>
+
+      
+
+      <div id="main" data-behavior="4"
+        class="
+               hasCoverMetaIn
+               ">
+        <article class="post" itemscope itemType="http://schema.org/BlogPosting">
+          
+          
+            <div class="post-header main-content-wrap text-left">
+  
+    <h1 class="post-title" itemprop="headline">
+      Postgres Dynamic Shared Memory(dsm)
+    </h1>
+  
+  
+  <div class="postShorten-meta post-meta">
+    
+      <time itemprop="datePublished" datetime="2019-06-20T16:35:16&#43;08:00">
+        
+  六月 20, 2019
+
+      </time>
+    
+    
+  
+  
+    <span>发布在</span>
+    
+      <a class="category-link" href="https://yjfnlc.cn/categories/postgres">postgres</a>, 
+    
+      <a class="category-link" href="https://yjfnlc.cn/categories/greenplum">greenplum</a>
+    
+  
+
+  </div>
+
+</div>
+          
+          <div class="post-content markdown" itemprop="articleBody">
+            <div class="main-content-wrap">
+              <h1 id="dynamic-shared-memory-and-shared-memory-queue">Dynamic Shared Memory And Shared Memory Queue</h1>
+
+<p>These days I just read the postgres&rsquo; dynamic shared memory and shared message queue.
+This is my study note of the postgres source code.
+The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.</p>
+
+<h2 id="structure">Structure</h2>
+
+<pre><code class="language-c">static dsm_handle dsm_control_handle;
+</code></pre>
+
+<p>The dsm_control_handle is an unit32 value.
+Postgres use it to create a global dynamic shared memory file/segment. And create share memory on it.</p>
+
+<pre><code>
+                      (global dsm space/segment)
+dsm_control_handle --&gt; ------------------------------------
+                      |HEADER|item|item|item|item|item|item|--&gt; dsm_control_item
+                       ---------|----|----|----|----|----|-
+                      ^         |    ...  ...  ...  |    ...
+                      |         |                   v (dsm space)
+dsm_control_header *dsm_control |                    -----
+                   -------------|                   | ... |
+                   |                                 -----
+                   v (dsm space)
+                    --------------------------------------------------------------------
+                   |toc| toc_entry | toc_entry | ... | free space | ... | CHUNK | CHUNK |
+                    ---------|-----------|----------------------------------------------
+                             |           |                              ^       ^   |
+                             |           |------------------------------|       |   |
+                             |--------------------------------------------------|   |
+toc means table of content, it seperate a space to table of chunks.                 |
+                                                                                    |
+Shared memory message queue is residence dynamic shared memory.                     |
+For example we put a queue in a toc chunk.                                          |
+                                                   queue                            v
+                                                    --------------------------------
+                                                   |HEADER|      data ring          |
+                                         shm_mq -&gt;  --------------------------------
+</code></pre>
+
+<h2 id="dynamic-shared-memory">Dynamic Shared Memory</h2>
+
+<pre><code class="language-c">/* Shared-memory state for a dynamic shared memory segment. */
+typedef struct dsm_control_item
+{
+  dsm_handle  handle;
+  uint32    refcnt;     /* 2+ = active, 1 = moribund, 0 = gone */
+  void     *impl_private_pm_handle; /* only needed on Windows */
+  bool    pinned;
+} dsm_control_item;
+
+/* Layout of the dynamic shared memory control segment. */
+typedef struct dsm_control_header
+{
+  uint32    magic;
+  uint32    nitems;
+  uint32    maxitems;
+  dsm_control_item item[FLEXIBLE_ARRAY_MEMBER];
+} dsm_control_header;
+
+/* Backend-local state for a dynamic shared memory segment. */
+struct dsm_segment
+{
+  dlist_node  node;     /* List link in dsm_segment_list. */
+  ResourceOwner resowner;   /* Resource owner. */
+  dsm_handle  handle;     /* Segment name. */
+  uint32    control_slot; /* Slot in control segment. */
+  void     *impl_private; /* Implementation-specific private data. */
+  void     *mapped_address; /* Mapping address, or NULL if unmapped. */
+  Size    mapped_size;  /* Size of our mapping. */
+  slist_head  on_detach;    /* On-detach callbacks. */
+};
+</code></pre>
+
+<h3 id="dsm-startup">dsm startup.</h3>
+
+<p>Since postmaster don&rsquo;t use dsm, the startup of dsm will execute when a backend get started.
+For the whole database cluster(Not greenplum cluster).
+The shared memory control segment/space get created, which is also a dsm.
+The unique random <code>handle</code> value that identify the lower layer shared memory file/segment
+will be generated. Then, the file get created. After init <code>dsm_control_header *dsm_control</code>,
+the startup is done.</p>
+
+<h3 id="create-new-dsm">Create new dsm.</h3>
+
+<p>First it creates a local <code>dsm_segment</code> as segment descriptor.
+Add it to local <code>dsm_segment_list</code> to track current created ot attached dsm segments
+for current process.
+Generate random <code>handle</code> that identify the segment. Then create dsm base on it.
+If dsm gets created, record it into shared memory control segment&rsquo;s free <code>dsm_control_item - dsm_control-&gt;item[free_slot]</code>.
+Set the item&rsquo;s <code>refcnt</code> to 2. Increase the <code>dsm_control-&gt;nitems</code>.
+Record the current <code>free_slot</code> into local segment descriptor <code>seg-&gt;control_slot</code>.</p>
+
+<h3 id="attach-to-a-dsm">Attach to a dsm</h3>
+
+<p>Use the <code>handle</code> that identify the segment, first iterate the local <code>dsm_segment_list</code>
+to check whether current proc already created or attached to that dsm segment.
+Error out if exists in the list.
+If not exists in the list,  creates a local <code>dsm_segment</code> as segment descriptor.
+Add it to local <code>dsm_segment_list</code>.
+Iterate dsm items from shared memory control segment <code>dsm_control-&gt;item</code>.
+Find the required <code>handle</code> and increment item&rsquo;s refcnt.
+Set <code>seg-&gt;control_slot</code> to current item index.
+Finally, attach to the shared memory segment.</p>
+
+<h3 id="resize-an-existing-dsm">Resize an existing dsm</h3>
+
+<p>If mapped size is equal to new size, do nothing.
+If mapped size &gt; new size, shrink to new size.
+If mapped size &lt; new size, fill up to new size.
+Not all OS support resize. And resize will lose data for last two case.</p>
+
+<p>After resize, other process attached to the dsm need remap on existing shared memory segment.</p>
+
+<h3 id="detach-from-dsm">Detach from dsm</h3>
+
+<p>If there are detach callbacks registeded on local segment descriptor <code>seg-&gt;on_detach</code>,
+call the callback before detach.
+Then execute detach on dsm. Update shared memory control segment item attributes like <code>refcnt</code>.
+If current <code>refcnt</code> is 1, destory the dsm. Then clean the shared memory control segment item.</p>
+
+<h3 id="register-dsm-detach-callback">Register dsm detach callback.</h3>
+
+<p>Once successfully created or attached to a dsm, we can register detach callback in local
+segment descriptor. <code>seg-&gt;on_detach</code>. It&rsquo;s a list chain every detach callback.</p>
+
+<h2 id="shared-memory-segment-table-of-contents">Shared Memory Segment Table of Contents</h2>
+
+<p>Provide a simple way to divide a chunk of shared
+memory (probably dynamic shared memory allocated via dsm_create) into
+a number of regions and keep track of the addresses of those regions or
+key data structures within those regions.</p>
+
+<pre><code class="language-c">typedef struct shm_toc_entry
+{
+  uint64    key;      /* Arbitrary identifier */
+  Size    offset;     /* Offset, in bytes, from TOC start */
+} shm_toc_entry;
+
+struct shm_toc
+{
+  uint64    toc_magic;    /* Magic number identifying this TOC */
+  slock_t   toc_mutex;    /* Spinlock for mutual exclusion */
+  Size    toc_total_bytes;  /* Bytes managed by this TOC */
+  Size    toc_allocated_bytes;  /* Bytes allocated of those managed */
+  uint32    toc_nentry;   /* Number of entries in TOC */
+  shm_toc_entry toc_entry[FLEXIBLE_ARRAY_MEMBER];
+};
+</code></pre>
+
+<h3 id="crearte-shared-memory-table-of-content">Crearte shared memory table of content</h3>
+
+<p>Init <code>shm_toc</code> structure in region of dsm. Set a magic number in the structure for attach validation.</p>
+
+<h3 id="attach-shared-memory-table-of-content">Attach shared memory table of content</h3>
+
+<p>Transfer the address region of dsm into <code>shm_toc</code> structure.
+Validate the expected magic number is equal to the one in <code>shm_toc</code> structure.</p>
+
+<h3 id="allocate-space-from-table-of-content">Allocate space from table of content</h3>
+
+<p>Check whether remain free space is enough for the required size.
+If yes, allocate space from the end of <code>shm_toc</code> structure.</p>
+
+<h3 id="insert-table-of-content-entry-into-shm-toc-to-record-allocate-space-info">Insert table of content entry into shm_toc to record allocate space info.</h3>
+
+<p>Fill up the <code>shm_toc-&gt;toc_entry[free_slot]</code> with the allocated space affress offset and key.</p>
+
+<h3 id="lookup-for-a-chunk-from-table-of-content">Lookup for a chunk from table of content</h3>
+
+<p>Iterate all <code>shm_toc-&gt;toc_entry</code> and get entry that match request key. Return the chunk address.</p>
+
+<h2 id="shared-memory-message-queue">Shared Memory Message Queue</h2>
+
+<p>Single-reader, single-writer shared memory message queue.</p>
+
+<pre><code class="language-c">// This structure represents the actual queue, stored in shared memory.
+struct shm_mq
+{
+  slock_t   mq_mutex;
+  PGPROC     *mq_receiver;
+  PGPROC     *mq_sender;
+  uint64    mq_bytes_read;
+  uint64    mq_bytes_written;
+  Size    mq_ring_size;
+  bool    mq_detached;
+  uint8   mq_ring_offset;
+  char    mq_ring[FLEXIBLE_ARRAY_MEMBER];
+};
+
+// This structure is a backend-private(local) handle for access to a queue.
+struct shm_mq_handle
+{
+  shm_mq     *mqh_queue;
+  dsm_segment *mqh_segment;
+  BackgroundWorkerHandle *mqh_handle;
+  char     *mqh_buffer;
+  Size    mqh_buflen;
+  Size    mqh_consume_pending;
+  Size    mqh_partial_bytes;
+  Size    mqh_expected_bytes;
+  bool    mqh_length_word_complete;
+  bool    mqh_counterparty_attached;
+  MemoryContext mqh_context;
+};
+</code></pre>
+
+<h3 id="create-share-memory-message-queue">Create share memory message queue</h3>
+
+<p>Init <code>shm_mq</code> structure base on the given space. Set the ring size.</p>
+
+<h3 id="set-share-memory-message-queue-receiver">Set share memory message queue receiver</h3>
+
+<p>Set the receiver proc for the queue. If the sender exists, notify the sender.</p>
+
+<h3 id="set-share-memory-message-queue-sender">Set share memory message queue sender</h3>
+
+<p>Set the reader proc for the queue. if the receiver exists, notify the receiver.</p>
+
+<h3 id="attach-to-a-share-memory-message-queue">Attach to a share memory message queue</h3>
+
+<p>Attach is actually init a local <code>shm_mq_handle</code> structure record some local
+attribute for the shared queue.
+Also register a detach callback which update <code>shm_mq-&gt;mq_detached</code> to true.
+To let other process attach to the queue know that this proc detached.</p>
+
+<p>Set <code>shm_mq_handle-&gt;mqh_handle</code> if the other process attach to this queue is a bgworker.
+Because we don&rsquo;t want to wait forever if the bgworker fails to start.
+So we use the <code>BackgroundWorkerHandle mqh_handle</code> to track bgworker status.</p>
+
+<h3 id="send-data-to-queue">Send data to queue.</h3>
+
+<p>For data sending, it&rsquo;ll seperate into two phase.</p>
+
+<ol>
+<li>write length into the buffer first.</li>
+<li>write the data which length is equal the 1st step length.</li>
+</ol>
+
+<p>For each write, calculate the freespace of the queue&rsquo;s ring.</p>
+
+<ul>
+<li>If there&rsquo;s no availabe space to write.
+
+<ul>
+<li>If the receiver not exists, wait for a receiver. Or return <code>SHM_MQ_WOULD_BLOCK</code> for no block write.</li>
+<li>If the receiver detached, return <code>SHM_MQ_DETACHED</code>, no wait.</li>
+<li>If receiver exists, notify receiver to read more data from the queue.
+
+<ul>
+<li>If notify not success, return <code>SHM_MQ_DETACHED</code>, means receiver detached.</li>
+<li>Remember it may write partial data here.</li>
+<li>If success, wait, so receiver can read out data. Once receiver read some data, it&rsquo;ll wake up current sender. to continue write.</li>
+</ul></li>
+</ul></li>
+<li>If there still enough space for write, write to the ring, wrap if needed cause the queue is a ring.
+<code>shm_mq-&gt;mq_bytes_written</code> is used to track current write bytes.</li>
+</ul>
+
+<h3 id="read-data-from-queue">Read data from queue</h3>
+
+<p>For data reading, it read one msg at a time. It also seperate into two phase.</p>
+
+<ol>
+<li>read length of the msg.</li>
+<li>read the msg data which length is from 1st read.</li>
+</ol>
+
+<ul>
+<li>At the begining, it check whether sender exists. If not exists, it can not read.
+So, wait the sender process. For no wait, it&rsquo;ll return SHM_MQ_WOULD_BLOCK or
+SHM_MQ_DETACHED if sender detached.</li>
+<li>If data get wraped in the ring, local process use local <code>shm_mq_handle-&gt;mqh_buffer</code>
+to assemble final msg.</li>
+<li><code>shm_mq-&gt;mq_bytes_read</code> is used to track current read bytes.</li>
+<li>If there&rsquo;s no more data to read, wait for sender&rsquo;s notify so that the queue have data to read.</li>
+</ul>
+
+<h2 id="more-resources">More resources.</h2>
+
+<ul>
+<li><a href="https://www.postgresql.org/message-id/E1cCrkl-0000JT-16%40gemulon.postgresql.org">pgsql: Introduce dynamic shared memory areas.</a></li>
+<li><a href="https://www.postgresql.org/message-id/CA+TgmobUe28JR3zRUDH7s0jkCcdxsw6dP4sLw57x9NnMf01wgg@mail.gmail.com">shared memory message queues</a></li>
+</ul>
+              
+            </div>
+          </div>
+          <div id="post-footer" class="post-footer main-content-wrap">
+            
+              
+                
+                
+                  <div class="post-footer-tags">
+                    <span class="text-color-light text-small">标签</span><br/>
+                    
+  <a class="tag tag--primary tag--small" href="https://yjfnlc.cn/tags/pg/">pg</a>
+
+  <a class="tag tag--primary tag--small" href="https://yjfnlc.cn/tags/gp/">gp</a>
+
+  <a class="tag tag--primary tag--small" href="https://yjfnlc.cn/tags/postgres/">postgres</a>
+
+  <a class="tag tag--primary tag--small" href="https://yjfnlc.cn/tags/greenplum/">greenplum</a>
+
+                  </div>
+                
+              
+            
+            <div class="post-actions-wrap">
+  
+      <nav >
+        <ul class="post-actions post-action-nav">
+          
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--disabled">
+              
+                  <i class="fa fa-angle-left"></i>
+                  <span class="hide-xs hide-sm text-small icon-ml">下一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--disabled">
+              
+                  <span class="hide-xs hide-sm text-small icon-mr">上一篇</span>
+                  <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+          
+        </ul>
+      </nav>
+    <ul class="post-actions post-action-share" >
+      
+        <li class="post-action hide-lg hide-md hide-sm">
+          <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions">
+            <i class="fa fa-share-alt"></i>
+          </a>
+        </li>
+        
+      
+      
+        <li class="post-action">
+          <a class="post-action-btn btn btn--default" href="#disqus_thread">
+            <i class="fa fa-comment-o"></i>
+          </a>
+        </li>
+      
+      <li class="post-action">
+        
+          <a class="post-action-btn btn btn--default" href="#">
+        
+          <i class="fa fa-list"></i>
+        </a>
+      </li>
+    </ul>
+  
+</div>
+
+            
+              
+                <div id="disqus_thread">
+  <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+              
+            
+          </div>
+        </article>
+        <footer id="footer" class="main-content-wrap">
+  <span class="copyrights">
+    &copy; 2019 Yang Junfeng. All Rights Reserved
+  </span>
+</footer>
+
+      </div>
+      <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+        <div class="post-actions-wrap">
+  
+      <nav >
+        <ul class="post-actions post-action-nav">
+          
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--disabled">
+              
+                  <i class="fa fa-angle-left"></i>
+                  <span class="hide-xs hide-sm text-small icon-ml">下一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--disabled">
+              
+                  <span class="hide-xs hide-sm text-small icon-mr">上一篇</span>
+                  <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+          
+        </ul>
+      </nav>
+    <ul class="post-actions post-action-share" >
+      
+        <li class="post-action hide-lg hide-md hide-sm">
+          <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions">
+            <i class="fa fa-share-alt"></i>
+          </a>
+        </li>
+        
+      
+      
+        <li class="post-action">
+          <a class="post-action-btn btn btn--default" href="#disqus_thread">
+            <i class="fa fa-comment-o"></i>
+          </a>
+        </li>
+      
+      <li class="post-action">
+        
+          <a class="post-action-btn btn btn--default" href="#">
+        
+          <i class="fa fa-list"></i>
+        </a>
+      </li>
+    </ul>
+  
+</div>
+
+      </div>
+      <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+  <i id="btn-close-shareoptions" class="fa fa-close"></i>
+  <ul class="share-options">
+    
+  </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+    </div>
+    
+    <div id="about">
+  <div id="about-card">
+    <div id="about-btn-close">
+      <i class="fa fa-remove"></i>
+    </div>
+    
+      <img id="about-card-picture" src="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=110" alt="作者的图片" />
+    
+    <h4 id="about-card-name">Yang Junfeng</h4>
+    
+      <div id="about-card-bio">Really <strong>COOL</strong></div>
+    
+    
+      <div id="about-card-job">
+        <i class="fa fa-briefcase"></i>
+        <br/>
+        Code code
+      </div>
+    
+    
+      <div id="about-card-location">
+        <i class="fa fa-map-marker"></i>
+        <br/>
+        China
+      </div>
+    
+  </div>
+</div>
+
+    <div id="algolia-search-modal" class="modal-container">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="close-button"><i class="fa fa-close"></i></span>
+      <a href="https://algolia.com" target="_blank" rel="noopener" class="searchby-algolia text-color-light link-unstyled">
+        <span class="searchby-algolia-text text-color-light text-small">by</span>
+        <img class="searchby-algolia-logo" src="https://www.algolia.com/static_assets/images/press/downloads/algolia-light.svg">
+      </a>
+      <i class="search-icon fa fa-search"></i>
+      <form id="algolia-search-form">
+        <input type="text" id="algolia-search-input" name="search"
+          class="form-control input--large search-input" placeholder="搜索" />
+      </form>
+    </div>
+    <div class="modal-body">
+      <div class="no-result text-color-light text-center"></div>
+      <div class="results">
+        
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/">
+                <h3 class="media-heading">Postgres Dynamic Shared Memory(dsm)</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Jun 6, 2019
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather"><h1 id="dynamic-shared-memory-and-shared-memory-queue">Dynamic Shared Memory And Shared Memory Queue</h1>
+
+<p>These days I just read the postgres&rsquo; dynamic shared memory and shared message queue.
+This is my study note of the postgres source code.
+The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.</p></div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+      </div>
+    </div>
+    <div class="modal-footer">
+      <p class="results-count text-medium"
+         data-message-zero=""
+         data-message-one=""
+         data-message-other="">
+         1 posts found
+      </p>
+    </div>
+  </div>
+</div>
+    
+  
+    
+    <div id="cover" style="background-image:url('https://yjfnlc.cn/images/cover.jpg');"></div>
+  
+
+
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js" integrity="sha256-/BfiIkHlHoVihZdc6TFuj7MmJ0TWcWsMXkeDFwhi0zw=" crossorigin="anonymous"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.7/js/jquery.fancybox.min.js" integrity="sha256-GEAnjcTqVP+vBp3SSc8bEDQqvWAZMiHyUSIorrWwH50=" crossorigin="anonymous"></script>
+
+
+<script src="https://yjfnlc.cn/js/script-qi9wbxp2ya2j6p7wx1i6tgavftewndznf4v0hy2gvivk1rxgc3lm7njqb6bz.min.js"></script>
+
+
+<script lang="javascript">
+window.onload = updateMinWidth;
+window.onresize = updateMinWidth;
+document.getElementById("sidebar").addEventListener("transitionend", updateMinWidth);
+function updateMinWidth() {
+  var sidebar = document.getElementById("sidebar");
+  var main = document.getElementById("main");
+  main.style.minWidth = "";
+  var w1 = getComputedStyle(main).getPropertyValue("min-width");
+  var w2 = getComputedStyle(sidebar).getPropertyValue("width");
+  var w3 = getComputedStyle(sidebar).getPropertyValue("left");
+  main.style.minWidth = `calc(${w1} - ${w2} - ${w3})`;
+}
+</script>
+
+<script>
+$(document).ready(function() {
+  hljs.configure({ classPrefix: '', useBR: false });
+  $('pre.code-highlight > code, pre > code').each(function(i, block) {
+    if (!$(this).hasClass('codeblock')) {
+      $(this).addClass('codeblock');
+    }
+    hljs.highlightBlock(block);
+  });
+});
+</script>
+
+
+  
+    
+      <script>
+        var disqus_config = function () {
+          this.page.url = 'https:\/\/yjfnlc.cn\/2019\/06\/postgres-dynamic-shared-memorydsm\/';
+          
+            this.page.identifier = '\/2019\/06\/postgres-dynamic-shared-memorydsm\/'
+          
+        };
+        (function() {
+          
+          
+          if (window.location.hostname == "localhost") {
+            return;
+          }
+          var d = document, s = d.createElement('script');
+          var disqus_shortname = '杨峻峰';
+          s.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+
+          s.setAttribute('data-timestamp', +new Date());
+          (d.head || d.body).appendChild(s);
+        })();
+      </script>
+    
+  
+
+
+
+
+    
+  </body>
+</html>
+

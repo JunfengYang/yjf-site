@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>greenplum on Yang Junfeng&#39;s Page</title>
+    <link>https://yjfnlc.cn/categories/greenplum/</link>
+    <description>Recent content in greenplum on Yang Junfeng&#39;s Page</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 20 Jun 2019 16:35:16 +0800</lastBuildDate>
+    
+	<atom:link href="https://yjfnlc.cn/categories/greenplum/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Postgres Dynamic Shared Memory(dsm)</title>
+      <link>https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/</link>
+      <pubDate>Thu, 20 Jun 2019 16:35:16 +0800</pubDate>
+      
+      <guid>https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/</guid>
+      <description>&lt;h1 id=&#34;dynamic-shared-memory-and-shared-memory-queue&#34;&gt;Dynamic Shared Memory And Shared Memory Queue&lt;/h1&gt;
+
+&lt;p&gt;These days I just read the postgres&amp;rsquo; dynamic shared memory and shared message queue.
+This is my study note of the postgres source code.
+The note covers &amp;ldquo;dsm.c&amp;rdquo;, &amp;ldquo;shm_toc.c&amp;rdquo; and &amp;ldquo;shm_mq.c&amp;rdquo;.&lt;/p&gt;</description>
+    </item>
+    
+  </channel>
+</rss>
