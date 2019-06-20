@@ -3,7 +3,6 @@ title: "Postgres Dynamic Shared Memory(dsm)"
 date: 2019-06-20T16:35:16+08:00
 categories:
 - postgres
-- greenplum
 tags:
 - pg
 - gp
@@ -18,9 +17,9 @@ keywords:
 #thumbnailImage: //example.com/image.jpg
 ---
 
-# Dynamic Shared Memory And Shared Memory Queue
+# Dynamic Shared Memory And Shared Memory Message Queue
 
-These days I just read the postgres' dynamic shared memory and shared message queue.
+These days I just read the postgres' dynamic shared memory and shared memory message queue.
 This is my study note of the postgres source code.
 The note covers "dsm.c", "shm_toc.c" and "shm_mq.c".
 
