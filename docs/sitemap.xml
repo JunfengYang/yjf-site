@@ -4,31 +4,60 @@
   
   <url>
     <loc>https://yjfnlc.cn/categories/</loc>
-    <lastmod>2019-06-20T16:35:16+08:00</lastmod>
+    <lastmod>2019-06-21T11:40:16+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://yjfnlc.cn/post/</loc>
+    <lastmod>2019-06-21T11:40:16+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://yjfnlc.cn/tags/solrcloud/</loc>
+    <lastmod>2019-06-21T11:40:16+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/</loc>
+    <lastmod>2019-06-21T11:40:16+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://yjfnlc.cn/tags/</loc>
+    <lastmod>2019-06-21T11:40:16+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://yjfnlc.cn/</loc>
+    <lastmod>2019-06-21T11:40:16+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://yjfnlc.cn/tags/lucene/</loc>
+    <lastmod>2019-06-21T11:40:16+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://yjfnlc.cn/categories/solr/</loc>
+    <lastmod>2019-06-21T11:40:16+08:00</lastmod>
+    <priority>0</priority>
+  </url>
+  
+  <url>
+    <loc>https://yjfnlc.cn/tags/solr/</loc>
+    <lastmod>2019-06-21T11:40:16+08:00</lastmod>
     <priority>0</priority>
   </url>
   
   <url>
     <loc>https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/</loc>
     <lastmod>2019-06-20T16:35:16+08:00</lastmod>
-  </url>
-  
-  <url>
-    <loc>https://yjfnlc.cn/post/</loc>
-    <lastmod>2019-06-20T16:35:16+08:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>https://yjfnlc.cn/tags/</loc>
-    <lastmod>2019-06-20T16:35:16+08:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>https://yjfnlc.cn/</loc>
-    <lastmod>2019-06-20T16:35:16+08:00</lastmod>
-    <priority>0</priority>
   </url>
   
   <url>

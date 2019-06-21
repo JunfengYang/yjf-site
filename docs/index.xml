@@ -6,10 +6,21 @@
     <description>Recent content on Yang Junfeng&#39;s Page</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Thu, 20 Jun 2019 16:35:16 +0800</lastBuildDate>
+    <lastBuildDate>Fri, 21 Jun 2019 11:40:16 +0800</lastBuildDate>
     
 	<atom:link href="https://yjfnlc.cn/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>SolrCloud Handle Distributed Request And Load Balance</title>
+      <link>https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/</link>
+      <pubDate>Fri, 21 Jun 2019 11:40:16 +0800</pubDate>
+      
+      <guid>https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/</guid>
+      <description>&lt;p&gt;This note is based on source code reading.&lt;/p&gt;
+
+&lt;p&gt;As in SolrCloud, the query request is sent to one node. SolrCloud would automatically distribute the query to each shards. To have better performance, It enable load balance to make the distributed request evenly sent to each node.&lt;/p&gt;</description>
+    </item>
     
     <item>
       <title>Postgres Dynamic Shared Memory(dsm)</title>
@@ -17,7 +28,7 @@
       <pubDate>Thu, 20 Jun 2019 16:35:16 +0800</pubDate>
       
       <guid>https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/</guid>
-      <description>&lt;h1 id=&#34;dynamic-shared-memory-and-shared-memory-message-queue&#34;&gt;Dynamic Shared Memory And Shared Memory Message Queue&lt;/h1&gt;
+      <description>&lt;p&gt;Dynamic Shared Memory And Shared Memory Message Queue&lt;/p&gt;
 
 &lt;p&gt;These days I just read the Postgres&amp;rsquo; dynamic shared memory and shared memory message queue.
 This is my study note of the Postgres source code.

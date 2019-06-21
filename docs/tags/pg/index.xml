@@ -17,7 +17,7 @@
       <pubDate>Thu, 20 Jun 2019 16:35:16 +0800</pubDate>
       
       <guid>https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/</guid>
-      <description>&lt;h1 id=&#34;dynamic-shared-memory-and-shared-memory-message-queue&#34;&gt;Dynamic Shared Memory And Shared Memory Message Queue&lt;/h1&gt;
+      <description>&lt;p&gt;Dynamic Shared Memory And Shared Memory Message Queue&lt;/p&gt;
 
 &lt;p&gt;These days I just read the Postgres&amp;rsquo; dynamic shared memory and shared memory message queue.
 This is my study note of the Postgres source code.

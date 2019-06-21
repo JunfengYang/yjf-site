@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="generator" content="Hugo 0.55.6 with theme Tranquilpeak 0.4.3-SNAPSHOT">
+<meta name="author" content="Yang Junfeng">
+<meta name="keywords" content="SolrCloud, Distributed, Load, Balance">
+<meta name="description" content="This note is based on source code reading.
+
+As in SolrCloud, the query request is sent to one node. SolrCloud would automatically distribute the query to each shards. To have better performance, It enable load balance to make the distributed request evenly sent to each node.">
+
+
+<meta property="og:description" content="This note is based on source code reading.
+
+As in SolrCloud, the query request is sent to one node. SolrCloud would automatically distribute the query to each shards. To have better performance, It enable load balance to make the distributed request evenly sent to each node.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SolrCloud Handle Distributed Request And Load Balance">
+<meta name="twitter:title" content="SolrCloud Handle Distributed Request And Load Balance">
+<meta property="og:url" content="https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/">
+<meta property="twitter:url" content="https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/">
+<meta property="og:site_name" content="Yang Junfeng&#39;s Page">
+<meta property="og:description" content="This note is based on source code reading.
+
+As in SolrCloud, the query request is sent to one node. SolrCloud would automatically distribute the query to each shards. To have better performance, It enable load balance to make the distributed request evenly sent to each node.">
+<meta name="twitter:description" content="This note is based on source code reading.
+
+As in SolrCloud, the query request is sent to one node. SolrCloud would automatically distribute the query to each shards. To have better performance, It enable load balance to make the distributed request evenly sent to each node.">
+<meta property="og:locale" content="zh-cn">
+
+  
+    <meta property="article:published_time" content="2019-06-21T11:40:16">
+  
+  
+    <meta property="article:modified_time" content="2019-06-21T11:40:16">
+  
+  
+  
+    
+      <meta property="article:section" content="solr">
+    
+  
+  
+    
+      <meta property="article:tag" content="solr">
+    
+      <meta property="article:tag" content="lucene">
+    
+      <meta property="article:tag" content="SolrCloud">
+    
+  
+
+
+<meta name="twitter:card" content="summary">
+
+
+
+
+
+
+
+
+
+
+
+  <meta property="og:image" content="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=640">
+  <meta property="twitter:image" content="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=640">
+
+
+    <title>SolrCloud Handle Distributed Request And Load Balance</title>
+
+    <link rel="icon" href="https://yjfnlc.cn/favicon.png">
+    
+
+    
+
+    <link rel="canonical" href="https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/">
+
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/jquery.fancybox.min.css" integrity="sha256-vuXZ9LGmmwtjqFX1F+EKin1ThZMub58gKULUyf0qECk=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/helpers/jquery.fancybox-thumbs.min.css" integrity="sha256-SEa4XYAHihTcEP1f5gARTB2K26Uk8PsndQYHQC1f4jU=" crossorigin="anonymous" />
+    
+    
+    <link rel="stylesheet" href="https://yjfnlc.cn/css/style-nnm2spxvve8onlujjlegkkytaehyadd4ksxc1hyzzq9a2wvtrgbljqyulomn.min.css" />
+    
+    
+
+    
+      
+    
+    
+  </head>
+
+  <body>
+    <div id="blog">
+      <header id="header" data-behavior="4">
+  <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+  <div class="header-title">
+    <a class="header-title-link" href="https://yjfnlc.cn/">Yang Junfeng&#39;s Page</a>
+  </div>
+  
+    
+      <a class="header-right-picture "
+         href="https://yjfnlc.cn/#about">
+    
+    
+    
+      
+        <img class="header-picture" src="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=90" alt="作者的图片" />
+      
+    
+    </a>
+  
+</header>
+
+      <nav id="sidebar" data-behavior="4">
+  <div class="sidebar-container">
+    
+      <div class="sidebar-profile">
+        <a href="https://yjfnlc.cn/#about">
+          <img class="sidebar-profile-picture" src="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=110" alt="作者的图片" />
+        </a>
+        <h4 class="sidebar-profile-name">Yang Junfeng</h4>
+        
+          <h5 class="sidebar-profile-bio">Really <strong>COOL</strong></h5>
+        
+      </div>
+    
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+      
+      <span class="sidebar-button-desc">首页</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/categories">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+      
+      <span class="sidebar-button-desc">分类</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/tags">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+      
+      <span class="sidebar-button-desc">标签</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/archives">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+      
+      <span class="sidebar-button-desc">归档</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/#about">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+      
+      <span class="sidebar-button-desc">关于</span>
+    </a>
+  </li>
+
+
+    </ul>
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://github.com/JunfengYang" target="_blank" rel="noopener">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+      
+      <span class="sidebar-button-desc">GitHub</span>
+    </a>
+  </li>
+
+
+    </ul>
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/index.xml">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-rss"></i>
+      
+      <span class="sidebar-button-desc">RSS</span>
+    </a>
+  </li>
+
+
+    </ul>
+  </div>
+</nav>
+
+      
+
+      <div id="main" data-behavior="4"
+        class="
+               hasCoverMetaIn
+               ">
+        <article class="post" itemscope itemType="http://schema.org/BlogPosting">
+          
+          
+            <div class="post-header main-content-wrap text-left">
+  
+    <h1 class="post-title" itemprop="headline">
+      SolrCloud Handle Distributed Request And Load Balance
+    </h1>
+  
+  
+  <div class="postShorten-meta post-meta">
+    
+      <time itemprop="datePublished" datetime="2019-06-21T11:40:16&#43;08:00">
+        
+  六月 21, 2019
+
+      </time>
+    
+    
+  
+  
+    <span>发布在</span>
+    
+      <a class="category-link" href="https://yjfnlc.cn/categories/solr">solr</a>
+    
+  
+
+  </div>
+
+</div>
+          
+          <div class="post-content markdown" itemprop="articleBody">
+            <div class="main-content-wrap">
+              <p>This note is based on source code reading.</p>
+
+<p>As in SolrCloud, the query request is sent to one node. SolrCloud would automatically distribute the query to each shards. To have better performance, It enable load balance to make the distributed request evenly sent to each node.</p>
+
+<p>For a collection, solr core(replica)’s <code>SearchHandler</code> will handle the query request through function <code>handleRequestBody</code>.</p>
+
+<pre><code class="language-java">public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception
+  {
+    ...
+    ResponseBuilder rb = new ResponseBuilder(req, rsp, components);
+    ...
+    final ShardHandler shardHandler1 = getAndPrepShardHandler(req, rb); // creates a ShardHandler object only if it's needed
+    ...
+    if (!rb.isDistrib) {
+      // a normal non-distributed request
+	  ...
+    } else {
+      // a distributed request
+      ...
+    }
+    ...
+  }
+</code></pre>
+
+<p>For a query request, there are several parameters will affect whether the request is distributed or which shards will be distributed to.</p>
+
+<table>
+<thead>
+<tr>
+<th align="center">Parameter</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">shards</td>
+<td>Shard ids, or replicas</td>
+<td>Search specify shards or replicas only. If this parameter is not provided, which is default, SolrCloud will query all shards. <a href="https://lucene.apache.org/solr/guide/6_6/distributed-requests.html#DistributedRequests-LimitingWhichShardsareQueried">Details</a></td>
+</tr>
+
+<tr>
+<td align="center">distrib</td>
+<td>true/false</td>
+<td>If the value is false, only execute query on the replica/core which receive the request.</td>
+</tr>
+
+<tr>
+<td align="center">preferLocalShards</td>
+<td>true/false</td>
+<td>if this set to true, it&rsquo;ll query on local replicas. <a href="https://lucene.apache.org/solr/guide/6_6/distributed-requests.html#DistributedRequests-PreferLocalShards">Details</a></td>
+</tr>
+</tbody>
+</table>
+
+<p>Let’s have a look for the distributed request and focus on the load balance.
+Once the function handleRequestBody receive a request. It inits a ResponseBuilder. And then let getAndPrepShardHandler function to get and prepare a ShardHandler which used to send distributed request.
+<code>SearchHandler.handleRequestBody() ----&gt; SearchHandler.getAndPreShardHandler().</code></p>
+
+<pre><code class="language-java">private ShardHandler getAndPrepShardHandler(SolrQueryRequest req, ResponseBuilder rb) {
+    ShardHandler shardHandler = null;
+
+    CoreContainer cc = req.getCore().getCoreContainer();
+    boolean isZkAware = cc.isZooKeeperAware();
+    rb.isDistrib = req.getParams().getBool(DISTRIB, isZkAware);
+    if (!rb.isDistrib) {
+      // for back compat, a shards param with URLs like localhost:8983/solr will mean that this
+      // search is distributed.
+      final String shards = req.getParams().get(ShardParams.SHARDS);
+      rb.isDistrib = ((shards != null) &amp;&amp; (shards.indexOf('/') &gt; 0));
+    }
+  
+    if (rb.isDistrib) {
+      shardHandler = shardHandlerFactory.getShardHandler();
+      shardHandler.prepDistributed(rb);
+      if (!rb.isDistrib) {
+        shardHandler = null; // request is not distributed after all and so the shard handler is not needed
+      }
+    }
+
+    if(isZkAware) {
+      ZkController zkController = cc.getZkController();
+      NamedList&lt;Object&gt; headers = rb.rsp.getResponseHeader();
+      if(headers != null) {
+        headers.add(&quot;zkConnected&quot;, 
+            zkController != null 
+          ? !zkController.getZkClient().getConnectionManager().isLikelyExpired() 
+          : false);
+      }
+    
+    }
+
+    return shardHandler;
+  }
+</code></pre>
+
+<p>The main idea for this function is to check whether current request is distributed request.
+And prepare the shards info for current collection. Store all needed info into ResponseBuilder.
+At the begin, get the CoreContainer and check whether zookeeper exists.</p>
+
+<p>If zookeeper exists, means current env is SolrCloud not a single solr env. Then, if parameter “distrib” is not false, current request will treat as distributed request.
+Else, current request will treat as non-distributed request.
+If request is distributed, get shardHandler and execute shardHandler.preDistributed(rb) to prepare shards info.
+Last, if zookeeper exists, set zookeeper info into ResponseBuilder’s response header.</p>
+
+<p>Let’s have a look how shardHandler prepare shards info.
+Explain two concept here.</p>
+
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>rb.slices</td>
+<td>Slice is a logical shard for code area. rb.slices contains the shard ID. like “shard1, shard2”</td>
+</tr>
+
+<tr>
+<td>rb.shards</td>
+<td>Shard here is a list of replicas. The format is like &ldquo;<a href="http://node:port/solr/collection_shard0_replica1|http://node:port/solr/collection_shard0_replica2”">http://node:port/solr/collection_shard0_replica1|http://node:port/solr/collection_shard0_replica2”</a>. This actually for load balance purposes.</td>
+</tr>
+</tbody>
+</table>
+
+<p><code>SearchHandler.handleRequestBody() ----&gt; SearchHandler.getAndPreShardHandler() ----HttpShardHandler.preDistributed()</code></p>
+
+<p>For this function, it can be separated into two part. First to get Slices info and init slice number of shards.</p>
+
+<pre><code class="language-java">public void prepDistributed(ResponseBuilder rb) {
+  final SolrQueryRequest req = rb.req;
+  final SolrParams params = req.getParams();
+  final String shards = params.get(ShardParams.SHARDS);
+  ...
+  final ReplicaListTransformer replicaListTransformer = httpShardHandlerFactory.getReplicaListTransformer(req);
+  if (shards != null) {
+    List&lt;String&gt; lst = StrUtils.splitSmart(shards, &quot;,&quot;, true);
+    rb.shards = lst.toArray(new String[lst.size()]);
+    rb.slices = new String[rb.shards.length];
+    if (zkController != null) {
+      // figure out which shards are slices
+      for (int i=0; i&lt;rb.shards.length; i++) {
+        if (rb.shards[i].indexOf('/') &lt; 0) {
+          // this is a logical shard
+          rb.slices[i] = rb.shards[i];
+          rb.shards[i] = null;
+        }
+      }
+    }
+  } else if (zkController != null) {
+    // we weren't provided with an explicit list of slices to query via &quot;shards&quot;, so use the cluster state
+    ...
+    // we need to find out what collections this request is for.
+    // A comma-separated list of specified collections.
+    // Eg: &quot;collection1,collection2,collection3&quot;
+    ...
+    // Store the logical slices in the ResponseBuilder and create a new
+    // String array to hold the physical shards (which will be mapped
+    // later).
+    rb.slices = slices.keySet().toArray(new String[slices.size()]);
+    rb.shards = new String[rb.slices.length];
+  }
+  //
+  // Map slices to shards
+  //
+...
+...
+}
+</code></pre>
+
+<p>Before get slice info, get a <code>ReplicaListTransformer</code>, it’s used to transforms the passed in list of request replicas. Random reorder the list for load balance request. If <code>preferLocalReplicas</code> set to “true”. It’ll sort replicas by comparing the node host address. The local replicas will be placed from the beginning of the replica list.</p>
+
+<p><code>SearchHandler.handleRequestBody() ----&gt; SearchHandler.getAndPreShardHandler() ----HttpShardHandler.preDistributed() ----&gt; HttpShardHandlerFactory.getReplicaListTransformer()</code></p>
+
+<pre><code class="language-java">protected ReplicaListTransformer getReplicaListTransformer(final SolrQueryRequest req)
+{
+  final SolrParams params = req.getParams();
+  if (params.getBool(CommonParams.PREFER_LOCAL_SHARDS, false)) {
+    final CoreDescriptor coreDescriptor = req.getCore().getCoreDescriptor();
+    final ZkController zkController = req.getCore().getCoreContainer().getZkController();
+    final String preferredHostAddress = (zkController != null) ? zkController.getBaseUrl() : null;
+    if (preferredHostAddress == null) {
+      log.warn(&quot;Couldn't determine current host address to prefer local shards&quot;);
+    } else {
+      return new ShufflingReplicaListTransformer(r) {
+        @Override
+        public void transform(List&lt;?&gt; choices)
+        {
+          if (choices.size() &gt; 1) {
+            super.transform(choices);
+            if (log.isDebugEnabled()) {
+              log.debug(&quot;Trying to prefer local shard on {} among the choices: {}&quot;,
+                  preferredHostAddress, Arrays.toString(choices.toArray()));
+            }
+            choices.sort(new IsOnPreferredHostComparator(preferredHostAddress));
+            if (log.isDebugEnabled()) {
+              log.debug(&quot;Applied local shard preference for choices: {}&quot;,
+                  Arrays.toString(choices.toArray()));
+            }
+          }
+        }
+      };
+    }
+  }
+  return shufflingReplicaListTransformer;
+}
+</code></pre>
+
+<p>If the request parameters already exists “shards”.
+Value is shard ids, set them in rb.slices. Init rb.shards with empty but same size with rb.slices. Then in future, get replicas for each shard and set in rb.shards(for distribute request, with load balance cause it’ll random pick a replica later).</p>
+
+<p>Value is shard urls that separate by “,”, set them in rb.shards(for distribute request, no load balance cause no replicas selected for further load balance request).
+Value is shard’s replicas url that seperate by “|”, set them in rb.shards(for distribute request, with load balance cause it’ll random pick a replica later).</p>
+
+<p>If no “shards” parameter provided and solr connect to zookeeper(which means in SolrCloud mode).
+Get collection or collections(able to query multiple collections by setting “collection” parameter) shards info from zookeeper and set into rb.slices. Init rb.shards with empty but same size with rb.slices. Then in future, get replicas for each shard and set in rb.shards(for distribute request, with load balance cause it’ll random pick a replica later).</p>
+
+<p>Then the second part is mapping slices to shards.</p>
+
+<pre><code class="language-java">public void prepDistributed(ResponseBuilder rb) {
+  // Get slices(logic shard object) info and init slice number of shards
+  ...
+  //
+  // Map slices to shards
+  //
+  if (zkController != null) {
+    // Are we hosting the shard that this request is for, and are we active? If so, then handle it ourselves
+    // and make it a non-distributed request.
+    String ourSlice = cloudDescriptor.getShardId();
+    String ourCollection = cloudDescriptor.getCollectionName();
+    // Some requests may only be fulfilled by replicas of type Replica.Type.NRT
+    boolean onlyNrtReplicas = Boolean.TRUE == req.getContext().get(ONLY_NRT_REPLICAS);
+    if (rb.slices.length == 1 &amp;&amp; rb.slices[0] != null
+        &amp;&amp; ( rb.slices[0].equals(ourSlice) || rb.slices[0].equals(ourCollection + &quot;_&quot; + ourSlice) )  // handle the &lt;collection&gt;_&lt;slice&gt; format
+        &amp;&amp; cloudDescriptor.getLastPublished() == Replica.State.ACTIVE
+        &amp;&amp; (!onlyNrtReplicas || cloudDescriptor.getReplicaType() == Replica.Type.NRT)) {
+      ...
+      if (shortCircuit) {
+        rb.isDistrib = false;
+        rb.shortCircuitedURL = ZkCoreNodeProps.getCoreUrl(zkController.getBaseUrl(), coreDescriptor.getName());
+        return;
+      }
+      // We shouldn't need to do anything to handle &quot;shard.rows&quot; since it was previously meant to be an optimization?
+    }
+    ...
+  }
+  ...
+}
+</code></pre>
+
+<p>To map slices to shards, current core/replica should have zookeeper connection(which mean SolrCloud mode). Here’s a simple optimize, if the rb.slices only have one, and it’s same shard with the replica/core which receive current request. Then mark the request non-distributed just handle it by itself. Finish the prepare and return.</p>
+
+<p>If have more than one rb.slices, continue map slices to shards.</p>
+
+<pre><code class="language-java">public void prepDistributed(ResponseBuilder rb) {
+  // Get slices(logic shard object) info and init slice number of shards
+  ...
+  // Map slices to shards
+  if (zkController != null) {
+    // Are we hosting the shard that this request is for, and are we active? If so, then handle it ourselves and make it a non-distributed request.
+    ...
+    for (int i=0; i&lt;rb.shards.length; i++) {
+      if (rb.shards[i] != null) {
+        final List&lt;String&gt; shardUrls = StrUtils.splitSmart(rb.shards[i], &quot;|&quot;, true);
+        replicaListTransformer.transform(shardUrls);
+        // And now recreate the | delimited list of equivalent servers
+        rb.shards[i] = createSliceShardsStr(shardUrls);
+      } else {
+        ...
+        final List&lt;Replica&gt; eligibleSliceReplicas = collectEligibleReplicas(slice, clusterState, onlyNrtReplicas, isShardLeader);
+        final List&lt;String&gt; shardUrls = transformReplicasToShardUrls(replicaListTransformer, eligibleSliceReplicas);
+        // And now recreate the | delimited list of equivalent servers
+        final String sliceShardsStr = createSliceShardsStr(shardUrls);
+        ...
+        rb.shards[i] = sliceShardsStr;
+      }
+    }
+  }
+  ...
+}
+</code></pre>
+
+<p>For each shard in <code>rb.shards</code>, if value is not null.
+Using <code>ReplicaListTransformer</code> to reorder replicas. The transform function we already discussed before. Recreate the replicas back to rb.shards. Now the order of replicas is different from original value for each shard in rb.shards.</p>
+
+<p>If value is null.
+No replicas info for each shard, so get shard active replicas. Run transformReplicasToShardUrls to reorder active replicas and get replcia urls for load balance.</p>
+
+<p><code>SearchHandler.handleRequestBody() ----&gt; SearchHandler.getAndPreShardHandler() ----HttpShardHandler.preDistributed() ----&gt; ----HttpShardHandler.transformReplicasToShardUrls()</code></p>
+
+<pre><code class="language-java">private static List&lt;String&gt; transformReplicasToShardUrls(final ReplicaListTransformer replicaListTransformer, final List&lt;Replica&gt; eligibleSliceReplicas) {
+  replicaListTransformer.transform(eligibleSliceReplicas);
+  final List&lt;String&gt; shardUrls = new ArrayList&lt;&gt;(eligibleSliceReplicas.size());
+  for (Replica replica : eligibleSliceReplicas) {
+    String url = ZkCoreNodeProps.getCoreUrl(replica);
+    shardUrls.add(url);
+  }
+  return shardUrls;
+}
+</code></pre>
+
+<p>After set all needed info to <code>ResponseBuilder(rb here)</code>, the distributed prepare process finished.</p>
+
+<p>Let’s go back to <code>SearchHandler.handleRequestBody()</code>,</p>
+
+<pre><code class="language-java">public void handleRequestBody(SolrQueryRequest req, SolrQueryResponse rsp) throws Exception
+  {
+    ...
+    if (!rb.isDistrib) {
+      // a normal non-distributed request
+	  ...
+    } else {
+      // a distributed request
+      ...
+      int nextStage = 0;
+      do {
+        rb.stage = nextStage;
+        nextStage = ResponseBuilder.STAGE_DONE;
+        // call all components
+        for( SearchComponent c : components ) {
+          // the next stage is the minimum of what all components report
+          nextStage = Math.min(nextStage, c.distributedProcess(rb));
+        }
+        // check the outgoing queue and send requests
+        while (rb.outgoing.size() &gt; 0) {
+          // submit all current request tasks at once
+          while (rb.outgoing.size() &gt; 0) {
+            ...
+            // TODO: map from shard to address[]
+            for (String shard : sreq.actualShards) {
+              ...
+              shardHandler1.submit(sreq, shard, params);
+            }
+          }
+          // now wait for replies, but if anyone puts more requests on
+          // the outgoing queue, send them out immediately (by exiting
+          // this loop)
+          boolean tolerant = rb.req.getParams().getBool(ShardParams.SHARDS_TOLERANT, false);
+          while (rb.outgoing.size() == 0) {
+            ...
+            // let the components see the responses to the request
+            for(SearchComponent c : components) {
+              c.handleResponses(rb, srsp.getShardRequest());
+            }
+          }
+        }
+        for(SearchComponent c : components) {
+          c.finishStage(rb);
+        }
+        // we are done when the next stage is MAX_VALUE
+      } while (nextStage != Integer.MAX_VALUE);
+    }
+    ...
+  }
+</code></pre>
+
+<p>To process a request, solr separates the whole process into several stages. For each stage and each component, it’ll execute below steps:
+Get next process stage, the next stage is the minimum of what all components report.
+For current stage, if components need to distributed execution on each shard, update rb.outgoing queue. The job is done through each components by <code>c.distributedProcess()</code>.</p>
+
+<p>If <code>rb.outgoing</code> queue size &gt; 0, send distributed requests by executing shardHandler1.submit() for each shard. Wait response for each request and build response.
+If there’s no next stage, finish distributed request.</p>
+
+<p>Let’s take a look for a example, a component need execute on each shard, QueryComponent.
+During c.distributedProcess(), it’ll add ShardRequest into rb.outgoing queue.
+<code>SearchHandler.handleRequestBody() ----&gt; QueryComponent.distributedProcess()</code></p>
+
+<pre><code class="language-java">public int distributedProcess(ResponseBuilder rb) throws IOException {
+  if (rb.grouping()) {
+    return groupedDistributedProcess(rb);
+  } else {
+    return regularDistributedProcess(rb);
+  }
+}
+</code></pre>
+
+<p><code>SearchHandler.handleRequestBody() ----&gt; QueryComponent.distributedProcess() ----&gt; QueryComponent.regularDistributedProcess()</code></p>
+
+<pre><code class="language-java">protected int regularDistributedProcess(ResponseBuilder rb) {
+  if (rb.stage &lt; ResponseBuilder.STAGE_PARSE_QUERY)
+    return ResponseBuilder.STAGE_PARSE_QUERY;
+  if (rb.stage == ResponseBuilder.STAGE_PARSE_QUERY) {
+    createDistributedStats(rb);
+    return ResponseBuilder.STAGE_EXECUTE_QUERY;
+  }
+  if (rb.stage &lt; ResponseBuilder.STAGE_EXECUTE_QUERY) return ResponseBuilder.STAGE_EXECUTE_QUERY;
+  if (rb.stage == ResponseBuilder.STAGE_EXECUTE_QUERY) {
+    createMainQuery(rb);
+    return ResponseBuilder.STAGE_GET_FIELDS;
+  }
+  if (rb.stage &lt; ResponseBuilder.STAGE_GET_FIELDS) return ResponseBuilder.STAGE_GET_FIELDS;
+  if (rb.stage == ResponseBuilder.STAGE_GET_FIELDS &amp;&amp; !rb.onePassDistributedQuery) {
+    createRetrieveDocs(rb);
+    return ResponseBuilder.STAGE_DONE;
+  }
+  return ResponseBuilder.STAGE_DONE;
+}
+</code></pre>
+
+<p>If the state now is “STAGE_EXECUTE_QUERY”, run <code>createMainQuery(rb)</code>.</p>
+
+<p><code>SearchHandler.handleRequestBody() ----&gt; QueryComponent.distributedProcess() ----&gt; QueryComponent.regularDistributedProcess() ----&gt; QueryComponent.createMainQuery()</code></p>
+
+<pre><code class="language-java">protected void createMainQuery(ResponseBuilder rb) {
+  ShardRequest sreq = new ShardRequest();
+  sreq.purpose = ShardRequest.PURPOSE_GET_TOP_IDS  ...
+  sreq.params = new ModifiableSolrParams(rb.req.getParams());
+  ...
+  // Set parameters for ShardRequest.
+  ...
+  rb.addRequest(this, sreq);
+}
+</code></pre>
+
+<p>The main task is to set query parameters for <code>ShardRequest</code>, and add the <code>ShardRequest</code> into <code>ResponseBuilder</code>.</p>
+
+<p><code>SearchHandler.handleRequestBody() ----&gt; QueryComponent.distributedProcess() ----&gt; QueryComponent.regularDistributedProcess() ----&gt; QueryComponent.createMainQuery() ----&gt; ResponseBuilder.addRequest()</code></p>
+
+<pre><code class="language-java">public void addRequest(SearchComponent me, ShardRequest sreq) {
+  outgoing.add(sreq);
+  if ((sreq.purpose &amp; ShardRequest.PURPOSE_PRIVATE) == 0) {
+    // if this isn't a private request, let other components modify it.
+    for (SearchComponent component : components) {
+      if (component != me) {
+        component.modifyRequest(this, me, sreq);
+      }
+    }
+  }
+}
+Actually, the ShardRequest added into ResponseBuilder.outgoing queue.
+
+Go back to SearchHandler.handleRequestBody(). We know that if the ResponseBuilder.outgoing size is &gt; 0, It’ll submit the ShardRequest for each shard.
+SearchHandler.handleRequestBody() ----&gt;shardhandler1(HttpShardhandler).submit()
+public void submit(final ShardRequest sreq, final String shard, final ModifiableSolrParams params) {
+  // do this outside of the callable for thread safety reasons
+  final List&lt;String&gt; urls = getURLs(shard);
+  Callable&lt;ShardResponse&gt; task = () -&gt; {
+    ShardResponse srsp = new ShardResponse();
+    ...
+    try {
+      ...
+      if (urls.size() &lt;= 1) {
+        String url = urls.get(0);
+        srsp.setShardAddress(url);
+        try (SolrClient client = new Builder(url).withHttpClient(httpClient).build()) {
+          ssr.nl = client.request(req);
+        }
+      } else {
+        LBHttpSolrClient.Rsp rsp = httpShardHandlerFactory.makeLoadBalancedRequest(req, urls);
+        ssr.nl = rsp.getResponse();
+        srsp.setShardAddress(rsp.getServer());
+      }
+    }
+    catch( ConnectException cex ) {
+      ...
+    }
+    ssr.elapsedTime = TimeUnit.MILLISECONDS.convert(System.nanoTime() - startTime, TimeUnit.NANOSECONDS);
+    return transfomResponse(sreq, srsp, shard);
+  };
+  try {
+    ...
+    pending.add( completionService.submit(task) );
+  } finally {
+    ...
+  }
+}
+</code></pre>
+
+<p>The value of argument “shard” is look like “<a href="http://node:port/solr/collection_shard0_replica1|http://node:port/solr/collection_shard0_replica2”">http://node:port/solr/collection_shard0_replica1|http://node:port/solr/collection_shard0_replica2”</a>
+At beginning, split argument “shard” into url list by “|”.
+Here create a Callable object called task. It wrap request execution.</p>
+
+<p>If url list size is less than 2, send client request to the url.
+Else, make load balance request.
+Then the Callable object task add into pending which is a Future set. This will perform async request and help get results by Future in thread.</p>
+
+<p>For load balance request:
+<code>SearchHandler.handleRequestBody() ----&gt;shardhandler1(HttpShardhandler).submit() ----&gt;HttpShardHandlerFactory.makeLoadBalanceRequest()</code></p>
+
+<pre><code class="language-java">public LBHttpSolrClient.Rsp makeLoadBalancedRequest(final QueryRequest req, List&lt;String&gt; urls)
+  throws SolrServerException, IOException {
+  return loadbalancer.request(newLBHttpSolrClientReq(req, urls));
+}
+</code></pre>
+
+<p>The <code>loadbalance.request</code> tries to query a live replica url from the list provided in Req. Replicas in the dead pool are skipped. If a request fails due to an IOException, the replica is moved to the dead pool for a certain period of time, or until a test request on that replica succeeds.</p>
+
+<p>Replicas are queried in the exact order given(except replicas currently in the dead pool are skipped), which get reordered by <code>replicaListTransformer.transform()</code> at <code>SearchHandler.handleRequestBody() ----&gt; SearchHandler.getAndPreShardHandler() ----HttpShardHandler.preDistributed()</code>.</p>
+
+<p>If no live replicas from the provided list remain to be tried, a number of previously skipped dead replicas will be tried. <code>Req.getNumDeadServersToTry()</code> controls how many dead replicas will be tried. If no live replicas are found a <code>SolrServerException</code> is thrown.</p>
+              
+            </div>
+          </div>
+          <div id="post-footer" class="post-footer main-content-wrap">
+            
+              
+                
+                
+                  <div class="post-footer-tags">
+                    <span class="text-color-light text-small">标签</span><br/>
+                    
+  <a class="tag tag--primary tag--small" href="https://yjfnlc.cn/tags/solr/">solr</a>
+
+  <a class="tag tag--primary tag--small" href="https://yjfnlc.cn/tags/lucene/">lucene</a>
+
+  <a class="tag tag--primary tag--small" href="https://yjfnlc.cn/tags/solrcloud/">SolrCloud</a>
+
+                  </div>
+                
+              
+            
+            <div class="post-actions-wrap">
+  
+      <nav >
+        <ul class="post-actions post-action-nav">
+          
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--disabled">
+              
+                  <i class="fa fa-angle-left"></i>
+                  <span class="hide-xs hide-sm text-small icon-ml">下一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--default tooltip--top" href="https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/" data-tooltip="Postgres Dynamic Shared Memory(dsm)">
+              
+                  <span class="hide-xs hide-sm text-small icon-mr">上一篇</span>
+                  <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+          
+        </ul>
+      </nav>
+    <ul class="post-actions post-action-share" >
+      
+        <li class="post-action hide-lg hide-md hide-sm">
+          <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions">
+            <i class="fa fa-share-alt"></i>
+          </a>
+        </li>
+        
+      
+      
+        <li class="post-action">
+          <a class="post-action-btn btn btn--default" href="#disqus_thread">
+            <i class="fa fa-comment-o"></i>
+          </a>
+        </li>
+      
+      <li class="post-action">
+        
+          <a class="post-action-btn btn btn--default" href="#">
+        
+          <i class="fa fa-list"></i>
+        </a>
+      </li>
+    </ul>
+  
+</div>
+
+            
+              
+                <div id="disqus_thread">
+  <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+              
+            
+          </div>
+        </article>
+        <footer id="footer" class="main-content-wrap">
+  <span class="copyrights">
+    &copy; 2019 Yang Junfeng. All Rights Reserved
+  </span>
+</footer>
+
+      </div>
+      <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+        <div class="post-actions-wrap">
+  
+      <nav >
+        <ul class="post-actions post-action-nav">
+          
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--disabled">
+              
+                  <i class="fa fa-angle-left"></i>
+                  <span class="hide-xs hide-sm text-small icon-ml">下一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--default tooltip--top" href="https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/" data-tooltip="Postgres Dynamic Shared Memory(dsm)">
+              
+                  <span class="hide-xs hide-sm text-small icon-mr">上一篇</span>
+                  <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+          
+        </ul>
+      </nav>
+    <ul class="post-actions post-action-share" >
+      
+        <li class="post-action hide-lg hide-md hide-sm">
+          <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions">
+            <i class="fa fa-share-alt"></i>
+          </a>
+        </li>
+        
+      
+      
+        <li class="post-action">
+          <a class="post-action-btn btn btn--default" href="#disqus_thread">
+            <i class="fa fa-comment-o"></i>
+          </a>
+        </li>
+      
+      <li class="post-action">
+        
+          <a class="post-action-btn btn btn--default" href="#">
+        
+          <i class="fa fa-list"></i>
+        </a>
+      </li>
+    </ul>
+  
+</div>
+
+      </div>
+      <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+  <i id="btn-close-shareoptions" class="fa fa-close"></i>
+  <ul class="share-options">
+    
+  </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+    </div>
+    
+    <div id="about">
+  <div id="about-card">
+    <div id="about-btn-close">
+      <i class="fa fa-remove"></i>
+    </div>
+    
+      <img id="about-card-picture" src="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=110" alt="作者的图片" />
+    
+    <h4 id="about-card-name">Yang Junfeng</h4>
+    
+      <div id="about-card-bio">Really <strong>COOL</strong></div>
+    
+    
+      <div id="about-card-job">
+        <i class="fa fa-briefcase"></i>
+        <br/>
+        Code code
+      </div>
+    
+    
+      <div id="about-card-location">
+        <i class="fa fa-map-marker"></i>
+        <br/>
+        China
+      </div>
+    
+  </div>
+</div>
+
+    <div id="algolia-search-modal" class="modal-container">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="close-button"><i class="fa fa-close"></i></span>
+      <a href="https://algolia.com" target="_blank" rel="noopener" class="searchby-algolia text-color-light link-unstyled">
+        <span class="searchby-algolia-text text-color-light text-small">by</span>
+        <img class="searchby-algolia-logo" src="https://www.algolia.com/static_assets/images/press/downloads/algolia-light.svg">
+      </a>
+      <i class="search-icon fa fa-search"></i>
+      <form id="algolia-search-form">
+        <input type="text" id="algolia-search-input" name="search"
+          class="form-control input--large search-input" placeholder="搜索" />
+      </form>
+    </div>
+    <div class="modal-body">
+      <div class="no-result text-color-light text-center"></div>
+      <div class="results">
+        
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/">
+                <h3 class="media-heading">SolrCloud Handle Distributed Request And Load Balance</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Jun 6, 2019
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather"><p>This note is based on source code reading.</p>
+
+<p>As in SolrCloud, the query request is sent to one node. SolrCloud would automatically distribute the query to each shards. To have better performance, It enable load balance to make the distributed request evenly sent to each node.</p></div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/">
+                <h3 class="media-heading">Postgres Dynamic Shared Memory(dsm)</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Jun 6, 2019
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather"><p>Dynamic Shared Memory And Shared Memory Message Queue</p>
+
+<p>These days I just read the Postgres&rsquo; dynamic shared memory and shared memory message queue.
+This is my study note of the Postgres source code.
+The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.</p></div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+      </div>
+    </div>
+    <div class="modal-footer">
+      <p class="results-count text-medium"
+         data-message-zero=""
+         data-message-one=""
+         data-message-other="">
+         2 posts found
+      </p>
+    </div>
+  </div>
+</div>
+    
+  
+    
+    <div id="cover" style="background-image:url('https://yjfnlc.cn/images/cover.jpg');"></div>
+  
+
+
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js" integrity="sha256-/BfiIkHlHoVihZdc6TFuj7MmJ0TWcWsMXkeDFwhi0zw=" crossorigin="anonymous"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.7/js/jquery.fancybox.min.js" integrity="sha256-GEAnjcTqVP+vBp3SSc8bEDQqvWAZMiHyUSIorrWwH50=" crossorigin="anonymous"></script>
+
+
+<script src="https://yjfnlc.cn/js/script-qi9wbxp2ya2j6p7wx1i6tgavftewndznf4v0hy2gvivk1rxgc3lm7njqb6bz.min.js"></script>
+
+
+<script lang="javascript">
+window.onload = updateMinWidth;
+window.onresize = updateMinWidth;
+document.getElementById("sidebar").addEventListener("transitionend", updateMinWidth);
+function updateMinWidth() {
+  var sidebar = document.getElementById("sidebar");
+  var main = document.getElementById("main");
+  main.style.minWidth = "";
+  var w1 = getComputedStyle(main).getPropertyValue("min-width");
+  var w2 = getComputedStyle(sidebar).getPropertyValue("width");
+  var w3 = getComputedStyle(sidebar).getPropertyValue("left");
+  main.style.minWidth = `calc(${w1} - ${w2} - ${w3})`;
+}
+</script>
+
+<script>
+$(document).ready(function() {
+  hljs.configure({ classPrefix: '', useBR: false });
+  $('pre.code-highlight > code, pre > code').each(function(i, block) {
+    if (!$(this).hasClass('codeblock')) {
+      $(this).addClass('codeblock');
+    }
+    hljs.highlightBlock(block);
+  });
+});
+</script>
+
+
+  
+    
+      <script>
+        var disqus_config = function () {
+          this.page.url = 'https:\/\/yjfnlc.cn\/2019\/06\/solrcloud-handle-distributed-request-and-load-balance\/';
+          
+            this.page.identifier = '\/2019\/06\/solrcloud-handle-distributed-request-and-load-balance\/'
+          
+        };
+        (function() {
+          
+          
+          if (window.location.hostname == "localhost") {
+            return;
+          }
+          var d = document, s = d.createElement('script');
+          var disqus_shortname = 'yjfnlc.cn';
+          s.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+
+          s.setAttribute('data-timestamp', +new Date());
+          (d.head || d.body).appendChild(s);
+        })();
+      </script>
+    
+  
+
+
+
+
+    
+  </body>
+</html>
+

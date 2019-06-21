@@ -17,7 +17,7 @@ keywords:
 #thumbnailImage: //example.com/image.jpg
 ---
 
-# Dynamic Shared Memory And Shared Memory Message Queue
+Dynamic Shared Memory And Shared Memory Message Queue
 
 These days I just read the Postgres' dynamic shared memory and shared memory message queue.
 This is my study note of the Postgres source code.
