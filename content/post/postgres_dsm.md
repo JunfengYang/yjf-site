@@ -50,7 +50,7 @@ dsm_control_header *dsm_control |                    -----
                              |           |                              ^       ^   |
                              |           |------------------------------|       |   |
                              |--------------------------------------------------|   |
-toc means table of content, it separate space to table of chunks.                 |
+toc means table of content, it separate space to table of chunks.                   |
                                                                                     |
 Shared memory message queue is residence dynamic shared memory.                     |
 For example we put a queue in a toc chunk.                                          |
