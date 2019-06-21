@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="generator" content="Hugo 0.55.6 with theme Tranquilpeak 0.4.3-SNAPSHOT">
-<meta name="author" content="Yang Junfeng">
+<meta name="author" content="杨峻峰">
 <meta name="keywords" content="SolrCloud, Distributed, Load, Balance">
 <meta name="description" content="This note is based on source code reading.
 
@@ -21,7 +21,7 @@ As in SolrCloud, the query request is sent to one node. SolrCloud would automati
 <meta name="twitter:title" content="SolrCloud Handle Distributed Request And Load Balance">
 <meta property="og:url" content="https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/">
 <meta property="twitter:url" content="https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/">
-<meta property="og:site_name" content="Yang Junfeng&#39;s Page">
+<meta property="og:site_name" content="要减肥&amp;哪里吃">
 <meta property="og:description" content="This note is based on source code reading.
 
 As in SolrCloud, the query request is sent to one node. SolrCloud would automatically distribute the query to each shards. To have better performance, It enable load balance to make the distributed request evenly sent to each node.">
@@ -65,8 +65,8 @@ As in SolrCloud, the query request is sent to one node. SolrCloud would automati
 
 
 
-  <meta property="og:image" content="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=640">
-  <meta property="twitter:image" content="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=640">
+  <meta property="og:image" content="https://avatars1.githubusercontent.com/u/12822679?s=200">
+  <meta property="twitter:image" content="https://avatars1.githubusercontent.com/u/12822679?s=200">
 
 
     <title>SolrCloud Handle Distributed Request And Load Balance</title>
@@ -99,7 +99,7 @@ As in SolrCloud, the query request is sent to one node. SolrCloud would automati
       <header id="header" data-behavior="4">
   <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
   <div class="header-title">
-    <a class="header-title-link" href="https://yjfnlc.cn/">Yang Junfeng&#39;s Page</a>
+    <a class="header-title-link" href="https://yjfnlc.cn/">要减肥&amp;哪里吃</a>
   </div>
   
     
@@ -109,7 +109,7 @@ As in SolrCloud, the query request is sent to one node. SolrCloud would automati
     
     
       
-        <img class="header-picture" src="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=90" alt="作者的图片" />
+        <img class="header-picture" src="https://avatars1.githubusercontent.com/u/12822679?s=200" alt="作者的图片" />
       
     
     </a>
@@ -121,9 +121,9 @@ As in SolrCloud, the query request is sent to one node. SolrCloud would automati
     
       <div class="sidebar-profile">
         <a href="https://yjfnlc.cn/#about">
-          <img class="sidebar-profile-picture" src="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=110" alt="作者的图片" />
+          <img class="sidebar-profile-picture" src="https://avatars1.githubusercontent.com/u/12822679?s=200" alt="作者的图片" />
         </a>
-        <h4 class="sidebar-profile-name">Yang Junfeng</h4>
+        <h4 class="sidebar-profile-name">杨峻峰</h4>
         
           <h5 class="sidebar-profile-bio">Really <strong>COOL</strong></h5>
         
@@ -803,12 +803,6 @@ Then the Callable object task add into pending which is a Future set. This will 
         
       
       
-        <li class="post-action">
-          <a class="post-action-btn btn btn--default" href="#disqus_thread">
-            <i class="fa fa-comment-o"></i>
-          </a>
-        </li>
-      
       <li class="post-action">
         
           <a class="post-action-btn btn btn--default" href="#">
@@ -822,16 +816,12 @@ Then the Callable object task add into pending which is a Future set. This will 
 
             
               
-                <div id="disqus_thread">
-  <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-</div>
-              
             
           </div>
         </article>
         <footer id="footer" class="main-content-wrap">
   <span class="copyrights">
-    &copy; 2019 Yang Junfeng. All Rights Reserved
+    &copy; 2019 杨峻峰. All Rights Reserved
   </span>
 </footer>
 
@@ -871,12 +861,6 @@ Then the Callable object task add into pending which is a Future set. This will 
         
       
       
-        <li class="post-action">
-          <a class="post-action-btn btn btn--default" href="#disqus_thread">
-            <i class="fa fa-comment-o"></i>
-          </a>
-        </li>
-      
       <li class="post-action">
         
           <a class="post-action-btn btn btn--default" href="#">
@@ -904,9 +888,9 @@ Then the Callable object task add into pending which is a Future set. This will 
       <i class="fa fa-remove"></i>
     </div>
     
-      <img id="about-card-picture" src="https://www.gravatar.com/avatar/e0c1ea9ab473020072df13b0d987444a?s=110" alt="作者的图片" />
+      <img id="about-card-picture" src="https://avatars1.githubusercontent.com/u/12822679?s=200" alt="作者的图片" />
     
-    <h4 id="about-card-name">Yang Junfeng</h4>
+    <h4 id="about-card-name">杨峻峰</h4>
     
       <div id="about-card-bio">Really <strong>COOL</strong></div>
     
@@ -1045,28 +1029,6 @@ $(document).ready(function() {
 
 
   
-    
-      <script>
-        var disqus_config = function () {
-          this.page.url = 'https:\/\/yjfnlc.cn\/2019\/06\/solrcloud-handle-distributed-request-and-load-balance\/';
-          
-            this.page.identifier = '\/2019\/06\/solrcloud-handle-distributed-request-and-load-balance\/'
-          
-        };
-        (function() {
-          
-          
-          if (window.location.hostname == "localhost") {
-            return;
-          }
-          var d = document, s = d.createElement('script');
-          var disqus_shortname = 'yjfnlc.cn';
-          s.src = '//' + disqus_shortname + '.disqus.com/embed.js';
-
-          s.setAttribute('data-timestamp', +new Date());
-          (d.head || d.body).appendChild(s);
-        })();
-      </script>
     
   
 

@@ -41,8 +41,9 @@ dsm_control_handle --> ------------------------------------
                       ^         |    ...  ...  ...  |    ...
                       |         |                   v (dsm space)
 dsm_control_header *dsm_control |                    -----
-                   -------------|                   | ... |
-                   |                                 -----
+                                |                   | ... |
+                   |------------|                    -----
+                   |
                    v (dsm space)
                     --------------------------------------------------------------------
                    |toc| toc_entry | toc_entry | ... | free space | ... | CHUNK | CHUNK |
@@ -94,13 +95,15 @@ struct dsm_segment
 };
 ```
 
-### dsm startup.
-Since postmaster doesn't use dsm, the startup of dsm will execute when a backend gets started.
+### dsm startup, create dsm control structure for futher dsm creation.
+The startup of dsm will execute when postmaster gets started.
 For the whole database cluster(Not Greenplum cluster).
 The shared memory control segment/space gets created, which is also a dsm.
 The unique random ```handle``` value that identifies the lower layer shared memory file/segment
 will be generated. Then, the file get created. After init ```dsm_control_header *dsm_control```,
 the startup is done.
+
+**This control dsm segment `dsm_control` is used to track and manage futher dsm creation.**
 
 ### Create new dsm.
 First it creates a local ```dsm_segment``` as segment descriptor.

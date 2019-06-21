@@ -15,9 +15,9 @@
 baseURL = "https://yjfnlc.cn/"
 languageCode = "en-us"
 defaultContentLanguage = "zh-cn"
-title = "Yang Junfeng's Page"
+title = "要减肥&哪里吃"
 theme = "hugo-tranquilpeak-theme"
-disqusShortname = "yjfnlc.cn"
+disqusShortname = ""
 # googleAnalytics = "UA-123-45"
 paginate = 7
 canonifyurls = true
@@ -32,15 +32,16 @@ publishDir = "docs"
   archive = "archives"
 
 [author]
-  name = "Yang Junfeng"
+  name = "杨峻峰"
   bio = "Really **COOL**"
   job = "Code code"
   location = "China"
   # Your Gravatar email. Overwrite `author.picture` everywhere in the blog
-  gravatarEmail = "jeyang@pivotal.io"
+  #gravatarEmail = ""
   # Your profile picture
   # Overwritten by your gravatar image if `author.gravatarEmail` is filled
-  picture = "https://cdn1.iconfinder.com/data/icons/ninja-things-1/1772/ninja-simple-512.png"
+  #picture = "https://cdn1.iconfinder.com/data/icons/ninja-things-1/1772/ninja-simple-512.png"
+  picture = "https://avatars1.githubusercontent.com/u/12822679?s=200"
   # Your Twitter username without the @. E.g : thibaudlepretre
   # twitter = "thibaudlepretre"
   # Your google plus profile id. E.g : +ThibaudLepretre or 114625208755123718311
