@@ -6,10 +6,37 @@
     <description>Recent content in Categories on 要减肥&amp;哪里吃</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 21 Jun 2019 11:40:16 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 23 Jun 2019 16:56:21 +0800</lastBuildDate>
     
 	<atom:link href="https://yjfnlc.cn/categories/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>file</title>
+      <link>https://yjfnlc.cn/categories/file/</link>
+      <pubDate>Sun, 23 Jun 2019 16:56:21 +0800</pubDate>
+      
+      <guid>https://yjfnlc.cn/categories/file/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>postgres</title>
+      <link>https://yjfnlc.cn/categories/postgres/</link>
+      <pubDate>Sun, 23 Jun 2019 16:56:21 +0800</pubDate>
+      
+      <guid>https://yjfnlc.cn/categories/postgres/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>storage mamagement</title>
+      <link>https://yjfnlc.cn/categories/storage-mamagement/</link>
+      <pubDate>Sun, 23 Jun 2019 16:56:21 +0800</pubDate>
+      
+      <guid>https://yjfnlc.cn/categories/storage-mamagement/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>solr</title>
@@ -17,15 +44,6 @@
       <pubDate>Fri, 21 Jun 2019 11:40:16 +0800</pubDate>
       
       <guid>https://yjfnlc.cn/categories/solr/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>postgres</title>
-      <link>https://yjfnlc.cn/categories/postgres/</link>
-      <pubDate>Thu, 20 Jun 2019 16:35:16 +0800</pubDate>
-      
-      <guid>https://yjfnlc.cn/categories/postgres/</guid>
       <description></description>
     </item>
     

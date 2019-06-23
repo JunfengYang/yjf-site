@@ -6,10 +6,23 @@
     <description>Recent content on 要减肥&amp;哪里吃</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 21 Jun 2019 11:40:16 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 23 Jun 2019 16:56:21 +0800</lastBuildDate>
     
 	<atom:link href="https://yjfnlc.cn/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Postgres Virtual File Descriptor(vfd)</title>
+      <link>https://yjfnlc.cn/2019/06/postgres-virtual-file-descriptorvfd/</link>
+      <pubDate>Sun, 23 Jun 2019 16:56:21 +0800</pubDate>
+      
+      <guid>https://yjfnlc.cn/2019/06/postgres-virtual-file-descriptorvfd/</guid>
+      <description>&lt;p&gt;I&amp;rsquo;m reading the Postgres storage code recently. I&amp;rsquo;ll pust some note onto this site.&lt;/p&gt;
+
+&lt;p&gt;This note is about the VFD(virtual file descriptor).&lt;/p&gt;
+
+&lt;p&gt;Let&amp;rsquo;s first look at the Postgres database physic structure. Where the relations(table, index, &amp;hellip;) files get stored on disk. &lt;a href=&#34;http://www.interdb.jp/pg/pgsql01.html&#34;&gt;Reference: interdb - Chapther 1&lt;/a&gt;&lt;/p&gt;</description>
+    </item>
     
     <item>
       <title>SolrCloud Handle Distributed Request And Load Balance</title>

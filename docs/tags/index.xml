@@ -6,10 +6,37 @@
     <description>Recent content in Tags on 要减肥&amp;哪里吃</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 21 Jun 2019 11:40:16 +0800</lastBuildDate>
+    <lastBuildDate>Sun, 23 Jun 2019 16:56:21 +0800</lastBuildDate>
     
 	<atom:link href="https://yjfnlc.cn/tags/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>postgres</title>
+      <link>https://yjfnlc.cn/tags/postgres/</link>
+      <pubDate>Sun, 23 Jun 2019 16:56:21 +0800</pubDate>
+      
+      <guid>https://yjfnlc.cn/tags/postgres/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>storage</title>
+      <link>https://yjfnlc.cn/tags/storage/</link>
+      <pubDate>Sun, 23 Jun 2019 16:56:21 +0800</pubDate>
+      
+      <guid>https://yjfnlc.cn/tags/storage/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>vfd</title>
+      <link>https://yjfnlc.cn/tags/vfd/</link>
+      <pubDate>Sun, 23 Jun 2019 16:56:21 +0800</pubDate>
+      
+      <guid>https://yjfnlc.cn/tags/vfd/</guid>
+      <description></description>
+    </item>
     
     <item>
       <title>SolrCloud</title>
@@ -62,15 +89,6 @@
       <pubDate>Thu, 20 Jun 2019 16:35:16 +0800</pubDate>
       
       <guid>https://yjfnlc.cn/tags/pg/</guid>
-      <description></description>
-    </item>
-    
-    <item>
-      <title>postgres</title>
-      <link>https://yjfnlc.cn/tags/postgres/</link>
-      <pubDate>Thu, 20 Jun 2019 16:35:16 +0800</pubDate>
-      
-      <guid>https://yjfnlc.cn/tags/postgres/</guid>
       <description></description>
     </item>
     

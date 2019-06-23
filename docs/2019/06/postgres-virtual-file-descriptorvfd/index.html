@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    
+    <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="generator" content="Hugo 0.55.6 with theme Tranquilpeak 0.4.3-SNAPSHOT">
+<meta name="author" content="杨峻峰">
+<meta name="keywords" content="postgres, virtual, file, descriptor, storage">
+<meta name="description" content="I&rsquo;m reading the Postgres storage code recently. I&rsquo;ll pust some note onto this site.
+
+This note is about the VFD(virtual file descriptor).
+
+Let&rsquo;s first look at the Postgres database physic structure. Where the relations(table, index, &hellip;) files get stored on disk. Reference: interdb - Chapther 1">
+
+
+<meta property="og:description" content="I&rsquo;m reading the Postgres storage code recently. I&rsquo;ll pust some note onto this site.
+
+This note is about the VFD(virtual file descriptor).
+
+Let&rsquo;s first look at the Postgres database physic structure. Where the relations(table, index, &hellip;) files get stored on disk. Reference: interdb - Chapther 1">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Postgres Virtual File Descriptor(vfd)">
+<meta name="twitter:title" content="Postgres Virtual File Descriptor(vfd)">
+<meta property="og:url" content="https://yjfnlc.cn/2019/06/postgres-virtual-file-descriptorvfd/">
+<meta property="twitter:url" content="https://yjfnlc.cn/2019/06/postgres-virtual-file-descriptorvfd/">
+<meta property="og:site_name" content="要减肥&amp;哪里吃">
+<meta property="og:description" content="I&rsquo;m reading the Postgres storage code recently. I&rsquo;ll pust some note onto this site.
+
+This note is about the VFD(virtual file descriptor).
+
+Let&rsquo;s first look at the Postgres database physic structure. Where the relations(table, index, &hellip;) files get stored on disk. Reference: interdb - Chapther 1">
+<meta name="twitter:description" content="I&rsquo;m reading the Postgres storage code recently. I&rsquo;ll pust some note onto this site.
+
+This note is about the VFD(virtual file descriptor).
+
+Let&rsquo;s first look at the Postgres database physic structure. Where the relations(table, index, &hellip;) files get stored on disk. Reference: interdb - Chapther 1">
+<meta property="og:locale" content="zh-cn">
+
+  
+    <meta property="article:published_time" content="2019-06-23T16:56:21">
+  
+  
+    <meta property="article:modified_time" content="2019-06-23T16:56:21">
+  
+  
+  
+    
+      <meta property="article:section" content="postgres">
+    
+      <meta property="article:section" content="storage mamagement">
+    
+      <meta property="article:section" content="file">
+    
+  
+  
+    
+      <meta property="article:tag" content="postgres">
+    
+      <meta property="article:tag" content="storage">
+    
+      <meta property="article:tag" content="vfd">
+    
+  
+
+
+<meta name="twitter:card" content="summary">
+
+
+
+
+
+
+
+
+
+
+
+  <meta property="og:image" content="https://avatars1.githubusercontent.com/u/12822679?s=200">
+  <meta property="twitter:image" content="https://avatars1.githubusercontent.com/u/12822679?s=200">
+
+
+    <title>Postgres Virtual File Descriptor(vfd)</title>
+
+    <link rel="icon" href="https://yjfnlc.cn/favicon.png">
+    
+
+    
+
+    <link rel="canonical" href="https://yjfnlc.cn/2019/06/postgres-virtual-file-descriptorvfd/">
+
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/jquery.fancybox.min.css" integrity="sha256-vuXZ9LGmmwtjqFX1F+EKin1ThZMub58gKULUyf0qECk=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/helpers/jquery.fancybox-thumbs.min.css" integrity="sha256-SEa4XYAHihTcEP1f5gARTB2K26Uk8PsndQYHQC1f4jU=" crossorigin="anonymous" />
+    
+    
+    <link rel="stylesheet" href="https://yjfnlc.cn/css/style-nnm2spxvve8onlujjlegkkytaehyadd4ksxc1hyzzq9a2wvtrgbljqyulomn.min.css" />
+    
+    
+
+    
+      
+    
+    
+  </head>
+
+  <body>
+    <div id="blog">
+      <header id="header" data-behavior="4">
+  <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+  <div class="header-title">
+    <a class="header-title-link" href="https://yjfnlc.cn/">要减肥&amp;哪里吃</a>
+  </div>
+  
+    
+      <a class="header-right-picture "
+         href="https://yjfnlc.cn/#about">
+    
+    
+    
+      
+        <img class="header-picture" src="https://avatars1.githubusercontent.com/u/12822679?s=200" alt="作者的图片" />
+      
+    
+    </a>
+  
+</header>
+
+      <nav id="sidebar" data-behavior="4">
+  <div class="sidebar-container">
+    
+      <div class="sidebar-profile">
+        <a href="https://yjfnlc.cn/#about">
+          <img class="sidebar-profile-picture" src="https://avatars1.githubusercontent.com/u/12822679?s=200" alt="作者的图片" />
+        </a>
+        <h4 class="sidebar-profile-name">杨峻峰</h4>
+        
+          <h5 class="sidebar-profile-bio">Really <strong>COOL</strong></h5>
+        
+      </div>
+    
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+      
+      <span class="sidebar-button-desc">首页</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/categories">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+      
+      <span class="sidebar-button-desc">分类</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/tags">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+      
+      <span class="sidebar-button-desc">标签</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/archives">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+      
+      <span class="sidebar-button-desc">归档</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/#about">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+      
+      <span class="sidebar-button-desc">关于</span>
+    </a>
+  </li>
+
+
+    </ul>
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://github.com/JunfengYang" target="_blank" rel="noopener">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+      
+      <span class="sidebar-button-desc">GitHub</span>
+    </a>
+  </li>
+
+
+    </ul>
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://yjfnlc.cn/index.xml">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-rss"></i>
+      
+      <span class="sidebar-button-desc">RSS</span>
+    </a>
+  </li>
+
+
+    </ul>
+  </div>
+</nav>
+
+      
+
+      <div id="main" data-behavior="4"
+        class="
+               hasCoverMetaIn
+               ">
+        <article class="post" itemscope itemType="http://schema.org/BlogPosting">
+          
+          
+            <div class="post-header main-content-wrap text-left">
+  
+    <h1 class="post-title" itemprop="headline">
+      Postgres Virtual File Descriptor(vfd)
+    </h1>
+  
+  
+  <div class="postShorten-meta post-meta">
+    
+      <time itemprop="datePublished" datetime="2019-06-23T16:56:21&#43;08:00">
+        
+  六月 23, 2019
+
+      </time>
+    
+    
+  
+  
+    <span>发布在</span>
+    
+      <a class="category-link" href="https://yjfnlc.cn/categories/postgres">postgres</a>, 
+    
+      <a class="category-link" href="https://yjfnlc.cn/categories/storage-mamagement">storage mamagement</a>, 
+    
+      <a class="category-link" href="https://yjfnlc.cn/categories/file">file</a>
+    
+  
+
+  </div>
+
+</div>
+          
+          <div class="post-content markdown" itemprop="articleBody">
+            <div class="main-content-wrap">
+              <p>I&rsquo;m reading the Postgres storage code recently. I&rsquo;ll pust some note onto this site.</p>
+
+<p>This note is about the VFD(virtual file descriptor).</p>
+
+<p>Let&rsquo;s first look at the Postgres database physic structure. Where the relations(table, index, &hellip;) files get stored on disk. <a href="http://www.interdb.jp/pg/pgsql01.html">Reference: interdb - Chapther 1</a></p>
+
+<h2 id="relation-table-schema-index-view-path-and-name-common-relpath-c">Relation(table, schema, index, view &hellip;) path and name. common/relpath.c</h2>
+
+<p>Under the data directory, a relation&rsquo;s physical storage consists of one or more forks(names for the same relation).
+For example a table oid &ldquo;13059&rdquo; under database &ldquo;13213&rdquo; contains files &ldquo;13059&rdquo;(main fork), &ldquo;13059_fsm&rdquo;(FSM fork), &ldquo;13059_vm&rdquo;(visibility fork). There may also contain an initialization fork.</p>
+
+<pre><code class="language-c">/*
+ * Stuff for fork names.
+ *
+ * The physical storage of relation consists of one or more forks.
+ * The main fork is always created, but in addition to that there can be
+ * additional forks for storing various metadata. ForkNumber is used when
+ * we need to refer to a specific fork in a relation.
+ */
+typedef enum ForkNumber
+{
+    InvalidForkNumber = -1,
+    MAIN_FORKNUM = 0,
+    FSM_FORKNUM,
+    VISIBILITYMAP_FORKNUM,
+    INIT_FORKNUM
+
+    /*
+     * NOTE: if you add a new fork, change MAX_FORKNUM and possibly
+     * FORKNAMECHARS below, and update the forkNames array in
+     * src/common/relpath.c
+     */
+} ForkNumber;
+const char *const forkNames[] = {
+    &quot;main&quot;,                        /* MAIN_FORKNUM */
+    &quot;fsm&quot;,                        /* FSM_FORKNUM */
+    &quot;vm&quot;,                        /* VISIBILITYMAP_FORKNUM */
+    &quot;init&quot;                        /* INIT_FORKNUM */
+};
+</code></pre>
+
+<h5 id="char-getdatabasepath-oid-dbnode-oid-spcnode-construct-path-to-a-database-directory">char * GetDatabasePath(Oid dbNode, Oid spcNode): construct path to a database directory</h5>
+
+<ul>
+<li>If the <code>spcNode == GLOBALTABLESPACE_OID</code>, return &ldquo;global&rdquo;.</li>
+<li>If <code>spcNode == DEFAULTTABLESPACE_OID</code>, return &ldquo;bash/(dbNode/dboid)&rdquo;.</li>
+</ul>
+
+<p>All other tablespaces are accessed via symlinks. pg<em>tblspc/(spcNode/spcoid)/PG</em>(version)/(dbNode/dboid).</p>
+
+<h5 id="char-getrelationpath-oid-dbnode-oid-spcnode-oid-relnode-int-backendid-forknumber-forknumber-construct-path-to-a-relation-s-file">char * GetRelationPath(Oid dbNode, Oid spcNode, Oid relNode, int backendId, ForkNumber forkNumber): construct path to a relation&rsquo;s file</h5>
+
+<ul>
+<li>If the <code>spcNode == GLOBALTABLESPACE_OID</code>:
+
+<ul>
+<li>if <code>forkNumber != MAIN_FORKNUM</code>:
+
+<ul>
+<li>return &ldquo;global/reloid_forkname&rdquo;</li>
+</ul></li>
+<li>else return &ldquo;global/reloid&rdquo;</li>
+</ul></li>
+<li>If <code>spcNode == DEFAULTTABLESPACE_OID</code>
+
+<ul>
+<li><code>return &quot;base/dboid/[tbackendid_]reloid[\_forkname(if not</code><code>MAIN_FORKNUM</code><code>)]&quot;</code></li>
+</ul></li>
+<li>else
+
+<ul>
+<li><code>return &quot;pg_tblspc/spcoid/PG_(verison)/dboid/[tbackendid_]reloid[\_forkname(if not</code><code>MAIN_FORKNUM</code><code>)]&quot;</code></li>
+</ul></li>
+</ul>
+
+<h2 id="vfd-storage-file-fd-c">VFD: storage/file/fd.c</h2>
+
+<h3 id="reason-for-virtual-file-descriptors">Reason for virtual file descriptors.</h3>
+
+<p>This code manages a cache of &lsquo;virtual&rsquo; file descriptors (VFDs).
+The server opens many file descriptors for a variety of reasons,
+including base tables, scratch files (e.g., sort and hash spool
+files), and random calls to C library routines like system(3); it
+is quite easy to exceed system limits on the number of open files
+a single process can have.  (This is around 256 on many modern
+operating systems, but can be as low as 32 on others.)</p>
+
+<h3 id="key-interfaces">Key interfaces.</h3>
+
+<ul>
+<li><code>PathNameOpenFile</code> - used to open virtual files
+PathNameOpenFile is intended for files that are held open for a long time, like relation files.</li>
+<li><code>OpenTemporaryFile</code> - used to open virtual files
+automatically deleted when the File is closed, either explicitly or implicitly at end of transaction or process exit.</li>
+</ul>
+
+<p>It is the caller&rsquo;s responsibility to close them, there is no automatic mechanism in fd.c for that.</p>
+
+<ul>
+<li><p><code>AllocateFile</code>, <code>AllocateDir</code>, <code>OpenPipeStream</code> and <code>OpenTransientFile</code> are wrappers around <code>fopen(3)</code>, <code>opendir(3)</code>, <code>popen(3)</code> and <code>open(2)</code>, respectively. They behave like the corresponding native functions, except that the handle is registered with the current subtransaction, and will be <em>automatically closed at abort</em>. These are intended mainly for <em>short operations</em> like reading a configuration file; there is a limit on the number of files that can be opened using these functions at any one time.</p></li>
+
+<li><p><code>BasicOpenFile</code> is just a thin wrapper around open() that can release file descriptors in use by the virtual file descriptors if necessary.</p></li>
+
+<li><p><code>OpenTransientFile/CloseTransient</code> File for an unbuffered file descriptor</p></li>
+
+<li><p>VFD structure</p></li>
+</ul>
+
+<pre><code class="language-c">typedef struct vfd
+{
+    int            fd;                /* current FD, or VFD_CLOSED if none */
+    unsigned short fdstate;        /* bitflags for VFD's state */
+    ResourceOwner resowner;        /* owner, for automatic cleanup */
+    File        nextFree;        /* link to next free VFD, if in freelist */
+    File        lruMoreRecently;    /* doubly linked recency-of-use list */
+    File        lruLessRecently;
+    off_t        seekPos;        /* current logical file position, or -1 */
+    off_t        fileSize;        /* current size of file (0 if not temporary) */
+    char       *fileName;        /* name of file, or NULL for unused VFD */
+    /* NB: fileName is malloc'd, and must be free'd when closing the VFD */
+    int            fileFlags;        /* open(2) flags for (re)opening the file */
+    int            fileMode;        /* mode to pass to open(2) */
+} Vfd;
+
+/*
+ * Virtual File Descriptor array pointer and size.  This grows as
+ * needed.  'File' values are indexes into this array.
+ * Note that VfdCache[0] is not a usable VFD, just a list header.
+ */
+static Vfd *VfdCache;
+static Size SizeVfdCache = 0;
+
+/*
+ * Number of file descriptors known to be in use by VFD entries.
+ */
+static int    nfile = 0;
+
+typedef int File; /* It indicate the VFD index in VfdCache. */
+</code></pre>
+
+<h3 id="key-private-routines-for-vfd-implementation">Key Private Routines for VFD implementation.</h3>
+
+<p>The <code>VfdCache</code> is an array of VDF. In the cache, there&rsquo;s an LRU ring and a free list.
+The Least Recently Used ring is a doubly linked list(constructs by <code>vfd.lruMoreRecently</code> and <code>vfd.lruLessRecently</code>) that begins and ends on element zero. Element zero is special &ndash; it doesn&rsquo;t represent a file and its &ldquo;fd&rdquo; field always == VFD_CLOSED. Element zero is just an anchor that shows us the beginning/end of the ring. Only VFD elements that are currently really open (have an FD assigned) are in the LRU ring. Elements that are &ldquo;virtually&rdquo; open can be recognized by having a non-null fileName field.
+Free list is a list contains free VDF, constructs by the <code>vfd.nextFree</code>.</p>
+
+<h5 id="initfileaccess-initialize-this-module-during-backend-startup"><code>InitFileAccess</code> initialize this module during backend startup</h5>
+
+<p>For initialization, only init one VFD and set to VfdCache[0],
+it&rsquo;s head of the VFD cache for both LRU and free list. Set <code>VfdCache-&gt;fd = VFD_CLOSED</code>.
+Not <code>SizeVfdCache = 1</code>
+Also call</p>
+
+<pre><code class="language-c">/* register proc-exit hook to ensure temp files are dropped at exit */
+    on_proc_exit(AtProcExit_Files, 0);
+</code></pre>
+
+<p>to register proc-exit hook to ensure temp files are dropped at exit.(on_proc_exit is a IPC module)
+Function <code>AtProcExit_Files</code> is the callback to clean temple files.
+It a wrapper of <code>CleanupTempFiles(true)</code>, it closes temporary files and deletes their underlying files.</p>
+
+<h5 id="allocatevfd-grab-a-free-or-new-file-record-from-vfdcache"><code>AllocateVfd</code> grab a free (or new) file record (from VfdCache).</h5>
+
+<p>After <code>InitFileAccess</code>, the <code>SizeVfdCache</code> must bigger than 0 now.
+If the free list is empty <code>VfdCache[0].nextFree == 0</code>.
+    - Double <code>SizeVfdCache</code>, if it&rsquo;s first time to <code>AllocateVfd</code>. Set <code>SizeVfdCache=32</code>.
+    - realloc the <code>VfdCache</code> array to siese <code>SizeVfdCache</code>. Note the first element is header.
+    - Initialize the new entries in <code>VfdCache</code> and link them into the free list.
+Get <code>File file</code> from free list head(VfdCache[0].nextFree). The File is actually the id of the VDF in <code>VfdCache</code> array.
+Remove the File from free list. <code>VfdCache[0].nextFree = VfdCache[file].nextFree</code>.
+Return the allocated vfd file.</p>
+
+<h5 id="freevfd-free-a-file-record"><code>FreeVfd</code> free a file record.</h5>
+
+<p>The input is the VFD File identitor. We can get the actual VFD by it(<code>Vfd *vfdP = &amp;VfdCache[file]</code>).
+We should clean the VFD and add it to head of free list.</p>
+
+<pre><code class="language-c">vfdP-&gt;nextFree = VfdCache[0].nextFree;
+VfdCache[0].nextFree = file;
+</code></pre>
+
+<h5 id="insert-put-a-file-at-the-front-of-the-lru-ring"><code>Insert</code> put a file at the front of the LRU ring.</h5>
+
+<p>The input is the VFD File identitor. We can get the actual VFD by it(<code>Vfd *vfdP = &amp;VfdCache[file]</code>).
+And we insert current file VFD into LRU as the most recently used item.
+We know the LRU is a ring through <code>lruLessRecently</code> and <code>lruMoreRecently</code> which is also <code>File</code> type indicates the index in <code>VfdCache</code>.
+If the Vfd item&rsquo;s <code>VfdCache[file].lruMoreRecently = 0</code> and <code>VfdCache[0].lruLessRecently == file</code>. means the <code>VfdCache[file]</code> is the most recentlly used VFD.</p>
+
+<pre><code class="language-c">vfdP-&gt;lruMoreRecently = 0;
+vfdP-&gt;lruLessRecently = VfdCache[0].lruLessRecently;
+VfdCache[0].lruLessRecently = file;
+VfdCache[vfdP-&gt;lruLessRecently].lruMoreRecently = file;
+</code></pre>
+
+<h5 id="delete-delete-a-file-from-the-lru-ring"><code>Delete</code> delete a file from the Lru ring.</h5>
+
+<p>The input is the VFD File identitor. We can get the actual VFD by it(<code>Vfd *vfdP = &amp;VfdCache[file]</code>).
+Remove the file VFD from LRU ring.</p>
+
+<pre><code class="language-c">VfdCache[vfdP-&gt;lruLessRecently].lruMoreRecently = vfdP-&gt;lruMoreRecently;
+VfdCache[vfdP-&gt;lruMoreRecently].lruLessRecently = vfdP-&gt;lruLessRecently;
+</code></pre>
+
+<p>Alyhrough the VFD get remove from LRU, but we may nore free it because we may reuse it later.</p>
+
+<h5 id="lrudelete-remove-a-file-from-the-lru-ring-and-close-its-fd"><code>LruDelete</code> remove a file from the LRU ring and close its FD.</h5>
+
+<p>We can get the actual VFD by it(<code>Vfd *vfdP = &amp;VfdCache[file]</code>).
+Make sure the seek position is valid. <code>FilePosIsUnknown(vfdP-&gt;seekPos)</code>
+Then call <code>close(vfdP-&gt;fd)</code> to close the real FD. <code>--nfile</code> reduce real used FD count.
+And then all <code>Delete</code> to remove vfd from LRU.</p>
+
+<h5 id="releaselrufile-release-an-fd-by-closing-the-last-entry-in-the-lru-ring"><code>ReleaseLruFile</code> Release an fd by closing the last entry in the Lru ring.</h5>
+
+<p>if real used FD count &gt; 0.
+    Get the less recently used VFD(<code>VfdCache[0].lruMoreRecently</code>) and call <code>LruDelete</code>.
+    return true.
+else return false.</p>
+
+<h5 id="releaselrufiles-release-fd-s-until-we-re-under-the-max-safe-fds-max-fs-allowed-in-the-pg-limit"><code>ReleaseLruFiles</code> Release fd(s) until we&rsquo;re under the max_safe_fds(max fs allowed in the pg) limit</h5>
+
+<p>If opened fs &gt;= max_safe_fds, run <code>ReleaseLruFile()</code>.</p>
+
+<h5 id="lruinsert-put-a-file-at-the-front-of-the-lru-ring-and-open-it"><code>LruInsert</code> put a file at the front of the LRU ring and open it.</h5>
+
+<p>We can get the actual VFD by it(<code>Vfd *vfdP = &amp;VfdCache[file]</code>).
+If the file not opened yet, run <code>ReleaseLruFiles</code> to make sure opened fd count is safe.
+Then execute <code>BasicOpenFile</code> to open it. BasicOpenFile, same as open(2) except can free other FDs by <code>ReleaseLruFile</code> if needed.
+if open success, <code>++nfile</code>, else return -1.
+Then check to seek position is valid, if not <code>--nfile</code> and return -1.
+If everything is ok, call <code>Insert(file)</code> to insert it into LRU head.</p>
+
+<h4 id="more-private-routines-for-vfd-implemenation">More private routines for VFD implemenation.</h4>
+
+<h5 id="fileaccess-open-the-file-file-if-not-opened-add-it-at-the-frount-of-lru-ring"><code>FileAccess</code> open the file(File) if not opened, add it at the frount of LRU ring.</h5>
+
+<p>If the file not opened, call <code>LruInsert</code>.
+If the file opened, and the VDF is not head of LRU ring, call <code>Delete(file); Insert(file);</code></p>
+
+<h4 id="vdf-public-interface">VDF public interface</h4>
+
+<h5 id="main-operations">Main operations</h5>
+
+<ul>
+<li><p>PathNameOpenFile(FileName fileName, int fileFlags, int fileMode): open a file in an arbitrary directory by file name.</p>
+
+<ol>
+<li>It&rsquo;ll can <code>AllocateVfd</code> to retrieve a <code>File file</code>, get it from <code>vfdP = &amp;VfdCache[file]</code>.</li>
+<li>Call <code>ReleaseLruFiles</code> to make sure current fd number is safe.</li>
+<li>Call <code>BasicOpenFile(fileName, fileFlags, fileMode)</code> to open a real fd.</li>
+<li>Call <code>Insert</code> to add it to head of LRU ring.</li>
+<li>Set VFD arributes.</li>
+</ol></li>
+
+<li><p>OpenTemporaryFile(bool interXact): Open a temporary file that will disappear when we close it.
+It actually record the <code>File file</code> in current resource owner normally, it&rsquo;ll get deleted if not used anymore(transaction end). If we want the temp file to outlive the current transaction, we don&rsquo;t record it.
+In either case, the file is removed when the File is explicitly closed.</p></li>
+
+<li><p>FileClose(File file): close a file when done with it.</p>
+
+<ol>
+<li>Get VFD <code>vfdP = &amp;VfdCache[file]</code>, if the file opened, close it by <code>close(cfdP-&gt;fd)</code>, <code>--nfile</code> and mark it closed. Then call <code>Delete(file)</code> to remove file from LRU.</li>
+<li>If the file is temporary <code>FD_TEMPORARY</code>, delete it by <code>unlink(vdfP-&gt;fukeName)</code></li>
+<li>If it has resource owner, remove it from it&rsquo;s owner.</li>
+<li>call <code>FreeVfd(file)</code> to return vfd to free list.</li>
+</ol></li>
+
+<li><p>FilePrefetch?</p></li>
+
+<li><p>FileRead(File file, char *buffer, int amount, uint32 wait_event_info)</p>
+
+<ol>
+<li>Call <code>FileAccess</code> to a file to make the file as the head of LRU ring.</li>
+<li>Call <code>read(vfdP-&gt;fd, buffer, amount)</code> to read data into buffer. if nor success, it&rsquo;ll retry.</li>
+</ol></li>
+
+<li><p>FileWrite(File file, char *buffer, int amount, uint32 wait_event_info)</p>
+
+<ol>
+<li>Call <code>FileAccess</code> to a file to make the file as the head of LRU ring.</li>
+<li>If it&rsquo;s a temporary file, make sure the size does not exceed <code>temp_file_limit</code></li>
+<li>Call <code>write(vfdP-&gt;fd, buffer, amount)</code> to write buffer.</li>
+<li>Calculate <code>temporary_files_size</code> for temporary file.</li>
+<li>if not succeed, may retry.</li>
+</ol></li>
+
+<li><p>FileSync(File file, uint32 wait_event_info): synchronize a file&rsquo;s in-core state with that on disk</p></li>
+
+<li><p>FileSeek(File file, off_t offset, int whence): seek read offset.</p></li>
+
+<li><p>FileTruncate(File file, off_t offset, uint32 wait_event_info): truncate file size.</p>
+
+<ol>
+<li><code>FileAccess(file)</code></li>
+<li>call <code>ftruncate</code> and update file size in vfd.</li>
+</ol></li>
+
+<li><p>FileWriteback: advise OS that the described dirty data should be flushed</p></li>
+
+<li><p>FilePathName: get the file path name by return <code>VfdCache[file].fileName</code></p></li>
+</ul>
+
+<h3 id="fd-operations-implementations">FD operations Implementations</h3>
+
+<p>They behave like the corresponding OS native functions, except that the handle is registered with the current subtransaction, and will be <em>automatically closed at abort</em>.</p>
+
+<pre><code class="language-c">/* To specify the file type allocated by these wrapper fnctions */
+typedef enum
+{
+    AllocateDescFile,
+    AllocateDescPipe,
+    AllocateDescDir,
+    AllocateDescRawFD
+} AllocateDescKind;
+
+/* Each file allocated by these wrapper function use AllocateDesc to describe itself. */
+typedef struct
+{
+    AllocateDescKind kind;
+    SubTransactionId create_subid;
+    union
+    {
+        FILE       *file;
+        DIR           *dir;
+        int            fd;
+    }            desc;
+} AllocateDesc;
+
+static int    numAllocatedDescs = 0;    /* Number of fds opened by these wraper functions */
+static int    maxAllocatedDescs = 0;  /* Max fds than can be opened by these wraper functions */
+static AllocateDesc *allocatedDescs = NULL; /* Array of the fd' AllocateDescs opened by these wraper functions */
+</code></pre>
+
+<h5 id="reserveallocateddesc-void-make-room-for-another-allocateddescs-array-entry-if-needed-and-possible">reserveAllocatedDesc(void): Make room for another allocatedDescs[] array entry if needed and possible.</h5>
+
+<p>If <code>numAllocatedDescs &lt; maxAllocatedDescs</code>, still have room for new <code>AllocateDescs</code>, return.
+If <code>allocatedDescs</code> is null, set <code>maxAllocatedDescs = FD_MINFREE / 2</code> and malloc this size of <code>AllocateDesc</code>.
+if <code>allocatedDescs != NULL</code> and no room for new <code>AllocateDescs</code>, set <code>maxAllocatedDescs = max_safe_fds / 2</code> and realloc allocatedDescs to new <code>maxAllocatedDescs</code> size.</p>
+
+<h5 id="ateosubxact-files-bool-iscommit-subtransactionid-mysubid-subtransactionid-parentsubid-take-care-of-subtransaction-commit-abort">AtEOSubXact_Files(bool isCommit, SubTransactionId mySubid, SubTransactionId parentSubid): Take care of subtransaction commit/abort.</h5>
+
+<p>For each element in <code>allocatedDescs</code>, if is <code>create_subid == mySubid</code>, for commit, we reassign the files that were opened to the parent subtransaction.  For abort, we close temp files that the subtransaction may have opened.</p>
+
+<h4 id="fd-operations-interface">FD operations interface</h4>
+
+<h5 id="operations-that-allow-use-of-regular-stdio-use-with-caution">Operations that allow use of regular stdio &mdash; USE WITH CAUTION</h5>
+
+<ul>
+<li>AllocateFile: Routines that want to use stdio (ie, FILE*) should use AllocateFile rather than plain fopen()
+
+<ol>
+<li><code>reserveAllocatedDesc</code> to make sure <code>AllocateDescs</code> still have room for new opened file.</li>
+<li><code>ReleaseLruFiles</code> to close excess fds.</li>
+<li><code>fopen</code> to open the file and if success, set <code>AllocateDesc</code> attributes for current <code>allocatedDescs[numAllocatedDescs]</code>.</li>
+</ol></li>
+</ul>
+
+<pre><code class="language-c">desc-&gt;kind = AllocateDescFile;
+desc-&gt;desc.file = file;
+desc-&gt;create_subid = GetCurrentSubTransactionId();
+</code></pre>
+
+<ul>
+<li>FreeFile: Close a file returned by AllocateFile.</li>
+</ul>
+
+<h5 id="operations-that-allow-use-of-pipe-streams-popen-pclose">Operations that allow use of pipe streams (popen/pclose)</h5>
+
+<ul>
+<li><p>OpenPipeStream: Routines that want to initiate a pipe stream should use OpenPipeStream rather than plain popen().
+Same routine with <code>AllocateFile</code> but use <code>popen</code>.</p></li>
+
+<li><p>ClosePipeStream: Close a pipe stream returned by OpenPipeStream</p></li>
+</ul>
+
+<h5 id="operations-to-allow-use-of-the-dirent-h-library-routines">Operations to allow use of the <dirent.h> library routines</h5>
+
+<ul>
+<li>AllocateDir: Routines that want to use <dirent.h> (ie, DIR*) should use AllocateDir
+rather than plain <code>opendir()</code>.</li>
+<li>ReadDir</li>
+<li>ReadDirExtended</li>
+<li>FreeDir: Close a directory opened with AllocateDir.</li>
+</ul>
+
+<h5 id="operations-to-allow-use-of-a-plain-kernel-fd-with-automatic-cleanup">Operations to allow use of a plain kernel FD, with automatic cleanup</h5>
+
+<ul>
+<li>OpenTransientFile: Like AllocateFile, but returns an unbuffered fd like <code>open(2)</code></li>
+<li>CloseTransientFile: Close a file returned by OpenTransientFile.</li>
+</ul>
+              
+            </div>
+          </div>
+          <div id="post-footer" class="post-footer main-content-wrap">
+            
+              
+                
+                
+                  <div class="post-footer-tags">
+                    <span class="text-color-light text-small">标签</span><br/>
+                    
+  <a class="tag tag--primary tag--small" href="https://yjfnlc.cn/tags/postgres/">postgres</a>
+
+  <a class="tag tag--primary tag--small" href="https://yjfnlc.cn/tags/storage/">storage</a>
+
+  <a class="tag tag--primary tag--small" href="https://yjfnlc.cn/tags/vfd/">vfd</a>
+
+                  </div>
+                
+              
+            
+            <div class="post-actions-wrap">
+  
+      <nav >
+        <ul class="post-actions post-action-nav">
+          
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--disabled">
+              
+                  <i class="fa fa-angle-left"></i>
+                  <span class="hide-xs hide-sm text-small icon-ml">下一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--default tooltip--top" href="https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/" data-tooltip="SolrCloud Handle Distributed Request And Load Balance">
+              
+                  <span class="hide-xs hide-sm text-small icon-mr">上一篇</span>
+                  <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+          
+        </ul>
+      </nav>
+    <ul class="post-actions post-action-share" >
+      
+        <li class="post-action hide-lg hide-md hide-sm">
+          <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions">
+            <i class="fa fa-share-alt"></i>
+          </a>
+        </li>
+        
+      
+      
+      <li class="post-action">
+        
+          <a class="post-action-btn btn btn--default" href="#">
+        
+          <i class="fa fa-list"></i>
+        </a>
+      </li>
+    </ul>
+  
+</div>
+
+            
+              
+            
+          </div>
+        </article>
+        <footer id="footer" class="main-content-wrap">
+  <span class="copyrights">
+    &copy; 2019 杨峻峰. All Rights Reserved
+  </span>
+</footer>
+
+      </div>
+      <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+        <div class="post-actions-wrap">
+  
+      <nav >
+        <ul class="post-actions post-action-nav">
+          
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--disabled">
+              
+                  <i class="fa fa-angle-left"></i>
+                  <span class="hide-xs hide-sm text-small icon-ml">下一篇</span>
+                </a>
+            </li>
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--default tooltip--top" href="https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/" data-tooltip="SolrCloud Handle Distributed Request And Load Balance">
+              
+                  <span class="hide-xs hide-sm text-small icon-mr">上一篇</span>
+                  <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+          
+        </ul>
+      </nav>
+    <ul class="post-actions post-action-share" >
+      
+        <li class="post-action hide-lg hide-md hide-sm">
+          <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions">
+            <i class="fa fa-share-alt"></i>
+          </a>
+        </li>
+        
+      
+      
+      <li class="post-action">
+        
+          <a class="post-action-btn btn btn--default" href="#">
+        
+          <i class="fa fa-list"></i>
+        </a>
+      </li>
+    </ul>
+  
+</div>
+
+      </div>
+      <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+  <i id="btn-close-shareoptions" class="fa fa-close"></i>
+  <ul class="share-options">
+    
+  </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+    </div>
+    
+    <div id="about">
+  <div id="about-card">
+    <div id="about-btn-close">
+      <i class="fa fa-remove"></i>
+    </div>
+    
+      <img id="about-card-picture" src="https://avatars1.githubusercontent.com/u/12822679?s=200" alt="作者的图片" />
+    
+    <h4 id="about-card-name">杨峻峰</h4>
+    
+      <div id="about-card-bio">Really <strong>COOL</strong></div>
+    
+    
+      <div id="about-card-job">
+        <i class="fa fa-briefcase"></i>
+        <br/>
+        Code code
+      </div>
+    
+    
+      <div id="about-card-location">
+        <i class="fa fa-map-marker"></i>
+        <br/>
+        China
+      </div>
+    
+  </div>
+</div>
+
+    <div id="algolia-search-modal" class="modal-container">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="close-button"><i class="fa fa-close"></i></span>
+      <a href="https://algolia.com" target="_blank" rel="noopener" class="searchby-algolia text-color-light link-unstyled">
+        <span class="searchby-algolia-text text-color-light text-small">by</span>
+        <img class="searchby-algolia-logo" src="https://www.algolia.com/static_assets/images/press/downloads/algolia-light.svg">
+      </a>
+      <i class="search-icon fa fa-search"></i>
+      <form id="algolia-search-form">
+        <input type="text" id="algolia-search-input" name="search"
+          class="form-control input--large search-input" placeholder="搜索" />
+      </form>
+    </div>
+    <div class="modal-body">
+      <div class="no-result text-color-light text-center"></div>
+      <div class="results">
+        
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="https://yjfnlc.cn/2019/06/postgres-virtual-file-descriptorvfd/">
+                <h3 class="media-heading">Postgres Virtual File Descriptor(vfd)</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Jun 6, 2019
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather"><p>I&rsquo;m reading the Postgres storage code recently. I&rsquo;ll pust some note onto this site.</p>
+
+<p>This note is about the VFD(virtual file descriptor).</p>
+
+<p>Let&rsquo;s first look at the Postgres database physic structure. Where the relations(table, index, &hellip;) files get stored on disk. <a href="http://www.interdb.jp/pg/pgsql01.html">Reference: interdb - Chapther 1</a></p></div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="https://yjfnlc.cn/2019/06/solrcloud-handle-distributed-request-and-load-balance/">
+                <h3 class="media-heading">SolrCloud Handle Distributed Request And Load Balance</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Jun 6, 2019
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather"><p>This note is based on source code reading.</p>
+
+<p>As in SolrCloud, the query request is sent to one node. SolrCloud would automatically distribute the query to each shards. To have better performance, It enable load balance to make the distributed request evenly sent to each node.</p></div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/">
+                <h3 class="media-heading">Postgres Dynamic Shared Memory(dsm)</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Jun 6, 2019
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather"><p>Dynamic Shared Memory And Shared Memory Message Queue</p>
+
+<p>These days I just read the Postgres&rsquo; dynamic shared memory and shared memory message queue.
+This is my study note of the Postgres source code.
+The note covers &ldquo;dsm.c&rdquo;, &ldquo;shm_toc.c&rdquo; and &ldquo;shm_mq.c&rdquo;.</p></div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+      </div>
+    </div>
+    <div class="modal-footer">
+      <p class="results-count text-medium"
+         data-message-zero=""
+         data-message-one=""
+         data-message-other="">
+         3 posts found
+      </p>
+    </div>
+  </div>
+</div>
+    
+  
+    
+    <div id="cover" style="background-image:url('https://yjfnlc.cn/images/cover.jpg');"></div>
+  
+
+
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js" integrity="sha256-/BfiIkHlHoVihZdc6TFuj7MmJ0TWcWsMXkeDFwhi0zw=" crossorigin="anonymous"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.7/js/jquery.fancybox.min.js" integrity="sha256-GEAnjcTqVP+vBp3SSc8bEDQqvWAZMiHyUSIorrWwH50=" crossorigin="anonymous"></script>
+
+
+<script src="https://yjfnlc.cn/js/script-qi9wbxp2ya2j6p7wx1i6tgavftewndznf4v0hy2gvivk1rxgc3lm7njqb6bz.min.js"></script>
+
+
+<script lang="javascript">
+window.onload = updateMinWidth;
+window.onresize = updateMinWidth;
+document.getElementById("sidebar").addEventListener("transitionend", updateMinWidth);
+function updateMinWidth() {
+  var sidebar = document.getElementById("sidebar");
+  var main = document.getElementById("main");
+  main.style.minWidth = "";
+  var w1 = getComputedStyle(main).getPropertyValue("min-width");
+  var w2 = getComputedStyle(sidebar).getPropertyValue("width");
+  var w3 = getComputedStyle(sidebar).getPropertyValue("left");
+  main.style.minWidth = `calc(${w1} - ${w2} - ${w3})`;
+}
+</script>
+
+<script>
+$(document).ready(function() {
+  hljs.configure({ classPrefix: '', useBR: false });
+  $('pre.code-highlight > code, pre > code').each(function(i, block) {
+    if (!$(this).hasClass('codeblock')) {
+      $(this).addClass('codeblock');
+    }
+    hljs.highlightBlock(block);
+  });
+});
+</script>
+
+
+  
+    
+  
+
+
+
+
+    
+  </body>
+</html>
+

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>postgres on 要减肥&amp;哪里吃</title>
-    <link>https://yjfnlc.cn/tags/postgres/</link>
-    <description>Recent content in postgres on 要减肥&amp;哪里吃</description>
+    <title>storage mamagement on 要减肥&amp;哪里吃</title>
+    <link>https://yjfnlc.cn/categories/storage-mamagement/</link>
+    <description>Recent content in storage mamagement on 要减肥&amp;哪里吃</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Sun, 23 Jun 2019 16:56:21 +0800</lastBuildDate>
     
-	<atom:link href="https://yjfnlc.cn/tags/postgres/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://yjfnlc.cn/categories/storage-mamagement/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
@@ -22,19 +22,6 @@
 &lt;p&gt;This note is about the VFD(virtual file descriptor).&lt;/p&gt;
 
 &lt;p&gt;Let&amp;rsquo;s first look at the Postgres database physic structure. Where the relations(table, index, &amp;hellip;) files get stored on disk. &lt;a href=&#34;http://www.interdb.jp/pg/pgsql01.html&#34;&gt;Reference: interdb - Chapther 1&lt;/a&gt;&lt;/p&gt;</description>
-    </item>
-    
-    <item>
-      <title>Postgres Dynamic Shared Memory(dsm)</title>
-      <link>https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/</link>
-      <pubDate>Thu, 20 Jun 2019 16:35:16 +0800</pubDate>
-      
-      <guid>https://yjfnlc.cn/2019/06/postgres-dynamic-shared-memorydsm/</guid>
-      <description>&lt;p&gt;Dynamic Shared Memory And Shared Memory Message Queue&lt;/p&gt;
-
-&lt;p&gt;These days I just read the Postgres&amp;rsquo; dynamic shared memory and shared memory message queue.
-This is my study note of the Postgres source code.
-The note covers &amp;ldquo;dsm.c&amp;rdquo;, &amp;ldquo;shm_toc.c&amp;rdquo; and &amp;ldquo;shm_mq.c&amp;rdquo;.&lt;/p&gt;</description>
     </item>
     
   </channel>
