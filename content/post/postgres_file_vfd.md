@@ -18,7 +18,7 @@ keywords:
 #thumbnailImage: //example.com/image.jpg
 ---
 
-I'm reading the Postgres storage code recently. I'll pust some note onto this site.
+I'm reading the Postgres storage code recently. I'll pust some notes onto this site.
 
 This note is about the VFD(virtual file descriptor). 
 
