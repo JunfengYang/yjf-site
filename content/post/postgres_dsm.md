@@ -271,5 +271,7 @@ to assemble final msg.
 
 
 ## More resources.
+- [Dynamic shared memory](https://www.postgresql.org/message-id/CA%2BTgmoaDqDUgt%3D4Zs_QPOnBt%3DEstEaVNP%2B5t%2Bm%3DFPNWshiPR3A%40mail.gmail.com)
+- [Shared memory message queues](https://www.postgresql.org/message-id/CA+TgmobUe28JR3zRUDH7s0jkCcdxsw6dP4sLw57x9NnMf01wgg@mail.gmail.com)
 - [pgsql: Introduce dynamic shared memory areas.](https://www.postgresql.org/message-id/E1cCrkl-0000JT-16%40gemulon.postgresql.org)
-- [shared memory message queues](https://www.postgresql.org/message-id/CA+TgmobUe28JR3zRUDH7s0jkCcdxsw6dP4sLw57x9NnMf01wgg@mail.gmail.com)
+- [Dynamic shared memory areas](https://www.postgresql.org/message-id/CAEepm=1z5WLuNoJ80PaCvz6EtG9dN0j-KuHcHtU6QEfcPP5-qA@mail.gmail.com)
